@@ -1,7 +1,6 @@
 import importlib.util
 from pathlib import Path
 import unittest
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -92,40 +91,6 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertIn('👑 NOVA:', text)
         self.assertIn('No plausible allowed pattern detected', text)
         self.assertIn('not spending the full desk', text)
-
-    def test_scan_sends_team_card_before_room_text(self):
-        bridge = load_bridge()
-        state = {}
-        update = {
-            'update_id': 100,
-            'message': {
-                'chat': {'id': -5570804166, 'type': 'group', 'title': 'ForexAgents HQ'},
-                'from': {'id': 6245975134},
-                'text': '/scan XAU/USD 1H bullish pin bar rejection',
-            },
-        }
-        sent = []
-
-        def fake_api(token, method, payload=None):
-            sent.append((method, payload))
-            return {'ok': True, 'result': [{'update_id': 100, 'message': update['message']}]} if method == 'getUpdates' else {'ok': True}
-
-        def fake_photo(token, chat_id, photo_path, caption=''):
-            sent.append(('sendPhoto', {'chat_id': chat_id, 'photo_path': str(photo_path), 'caption': caption}))
-            return {'ok': True}
-
-        with patch.object(bridge, 'get_updates', return_value=[update]), \
-             patch.object(bridge, 'telegram_api', side_effect=fake_api), \
-             patch.object(bridge, 'telegram_send_photo', side_effect=fake_photo), \
-             patch.object(bridge, 'build_team_card_safe', return_value=ROOT / 'assets' / 'generated' / 'test_card.png'), \
-             patch.object(bridge, 'call_rpc_scan', return_value={'gate': {'status': 'WAIT', 'evidence_grade': 'insufficient'}, 'transcript': []}), \
-             patch.object(bridge, 'save_state'):
-            bridge.bridge_once('fake-token', -5570804166, 6245975134, state)
-
-        methods = [item[0] for item in sent]
-        self.assertEqual(methods[0], 'sendPhoto')
-        self.assertEqual(methods[1], 'sendMessage')
-        self.assertIn('company room', sent[1][1]['text'])
 
 
 if __name__ == '__main__':

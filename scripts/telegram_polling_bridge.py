@@ -115,36 +115,6 @@ def telegram_api(token: str, method: str, payload: dict[str, Any] | None = None)
         return json.loads(resp.read().decode('utf-8'))
 
 
-def telegram_send_photo(token: str, chat_id: int, photo_path: Path, caption: str = '') -> dict[str, Any]:
-    """Send a local PNG/JPEG photo to Telegram without exposing the token."""
-    boundary = '----ForexAgentsHQBoundary7MA4YWxkTrZu0gW'
-    url = f'https://api.telegram.org/bot{token}/sendPhoto'
-    photo_path = Path(photo_path)
-    fields = {
-        'chat_id': str(chat_id),
-        'caption': caption,
-    }
-    body = bytearray()
-    for key, value in fields.items():
-        body.extend(f'--{boundary}\r\n'.encode())
-        body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
-        body.extend(str(value).encode())
-        body.extend(b'\r\n')
-    body.extend(f'--{boundary}\r\n'.encode())
-    body.extend(f'Content-Disposition: form-data; name="photo"; filename="{photo_path.name}"\r\n'.encode())
-    body.extend(b'Content-Type: image/png\r\n\r\n')
-    body.extend(photo_path.read_bytes())
-    body.extend(b'\r\n')
-    body.extend(f'--{boundary}--\r\n'.encode())
-    req = urllib.request.Request(
-        url,
-        data=bytes(body),
-        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},
-    )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return json.loads(resp.read().decode('utf-8'))
-
-
 def parse_command(text: str | None) -> dict[str, Any] | None:
     if not text or not text.startswith('/'):
         return None
@@ -237,41 +207,6 @@ def rpc_health() -> bool:
         return False
 
 
-def build_team_card_safe(symbol: str, timeframe: str) -> Path | None:
-    """Build the team card if image dependencies are available.
-
-    The Telegram bridge must keep replying even if Pillow/image generation fails.
-    If the bridge Python cannot import Pillow, fall back to the system Python
-    verified on Ozzi's Mac.
-    """
-    try:
-        from team_card import build_team_card
-        return build_team_card(symbol, timeframe)
-    except Exception as exc:
-        print(f'WARN team card primary builder failed: {exc}', flush=True)
-    try:
-        code = (
-            'import sys; '
-            'from team_card import build_team_card; '
-            'print(build_team_card(sys.argv[1], sys.argv[2]))'
-        )
-        proc = subprocess.run(
-            ['/usr/local/bin/python3', '-c', code, symbol, timeframe],
-            cwd=str(SCRIPT_DIR),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-        if proc.returncode == 0 and proc.stdout.strip():
-            return Path(proc.stdout.strip())
-        print(f'WARN team card fallback failed: {proc.stderr.strip()}', flush=True)
-    except Exception as exc:
-        print(f'WARN team card fallback crashed: {exc}', flush=True)
-    return None
-
-
 def call_rpc_scan(symbol: str, timeframe: str, notes: str) -> dict[str, Any]:
     payload = {
         'symbol': symbol,
@@ -348,17 +283,6 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
         if cmd['command'] == 'status':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_status_reply(rpc_health())})
         elif cmd['command'] == 'scan':
-            card_path = build_team_card_safe(cmd['symbol'], cmd['timeframe'])
-            if card_path is not None:
-                try:
-                    telegram_send_photo(
-                        token,
-                        chat_id,
-                        card_path,
-                        caption=f'🏢 ForexAgents HQ desk opened — {cmd["symbol"]} {cmd["timeframe"]}',
-                    )
-                except Exception as exc:
-                    print(f'WARN team card send skipped: {exc}', flush=True)
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:
                 rpc = call_rpc_scan(cmd['symbol'], cmd['timeframe'], cmd.get('args', ''))
