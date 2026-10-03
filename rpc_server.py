@@ -16,6 +16,7 @@ import os
 import subprocess
 import tempfile
 import time
+import importlib.util
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -105,6 +106,39 @@ def check_snapshot_quality(snapshot: dict[str, Any], now: str | None) -> dict[st
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding='utf-8', errors='replace') if path.exists() else ''
+
+
+def _load_case_store():
+    path = ROOT / 'skills' / 'core' / 'case_store.py'
+    spec = importlib.util.spec_from_file_location('case_store', path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def create_rpc_case(setup: dict[str, Any], gate: dict[str, Any]) -> dict[str, Any]:
+    """Create persistent case files for every RPC debate/setup call."""
+    store = _load_case_store()
+    timestamp = str(setup.get('timestamp') or setup.get('now') or datetime.now().astimezone().isoformat(timespec='seconds'))
+    sequence = int(setup.get('case_sequence') or 1)
+    root = Path(str(setup.get('case_root') or ROOT))
+    snapshot = setup.get('evidence_snapshot') if isinstance(setup.get('evidence_snapshot'), dict) else {
+        'snapshot_id': None,
+        'symbol': setup.get('symbol', 'UNKNOWN'),
+        'timeframe': setup.get('timeframe', 'UNKNOWN'),
+        'source': 'manual_notes',
+        'chart_notes': setup.get('chart_notes') or setup.get('notes') or setup.get('text') or '',
+    }
+    return store.create_case(
+        root=root,
+        symbol=str(setup.get('symbol') or gate.get('symbol') or 'UNKNOWN'),
+        timestamp=timestamp,
+        sequence=sequence,
+        rule_version=setup.get('rule_version', 1),
+        snapshot=snapshot,
+        gate=gate,
+    )
 
 
 def load_agent(agent_id: str) -> dict[str, str]:
@@ -322,6 +356,7 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
     """Run a real, staged agent conversation over provided setup input."""
     started = time.time()
     gate = evidence_gate(setup)
+    case = create_rpc_case(setup, gate)
     transcript: list[dict[str, str]] = []
     if gate['decision'] == 'WAIT' and not setup.get('force_debate'):
         journal_id = f"run-{int(started)}"
@@ -329,6 +364,8 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
         telegram_text = format_gate_wait(gate)
         journal_path.write_text(json.dumps({
             'id': journal_id,
+            'case_id': case['case_id'],
+            'case_dir': case['case_dir'],
             'setup': setup,
             'gate': gate,
             'status': 'WAIT',
@@ -339,6 +376,8 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
             'ok': True,
             'status': 'WAIT',
             'gate': gate,
+            'case_id': case['case_id'],
+            'case_dir': case['case_dir'],
             'journal_id': journal_id,
             'journal_path': str(journal_path),
             'elapsed_seconds': round(time.time() - started, 2),
@@ -346,7 +385,7 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
             'telegram_text': telegram_text,
         }
 
-    setup = {**setup, 'evidence_gate': gate}
+    setup = {**setup, 'evidence_gate': gate, 'case_id': case['case_id'], 'case_dir': case['case_dir']}
     asked_questions: set[tuple[str, str]] = set()
     # Allow smoke tests to run only part of the company, but default is the professional flow.
     max_agents = setup.get('max_agents')
@@ -374,12 +413,18 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
     journal_path = ROOT / 'journal' / f'{journal_id}.json'
     journal_path.write_text(json.dumps({
         'id': journal_id,
+        'case_id': case['case_id'],
+        'case_dir': case['case_dir'],
         'setup': setup,
+        'gate': gate,
         'transcript': transcript,
         'elapsed_seconds': round(time.time() - started, 2),
     }, indent=2), encoding='utf-8')
     return {
         'ok': True,
+        'case_id': case['case_id'],
+        'case_dir': case['case_dir'],
+        'gate': gate,
         'journal_id': journal_id,
         'journal_path': str(journal_path),
         'elapsed_seconds': round(time.time() - started, 2),

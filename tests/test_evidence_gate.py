@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +76,23 @@ class EvidenceGateTests(unittest.TestCase):
         self.assertIn('stale_data', result['gate']['vetoes'])
         self.assertEqual(calls, [])
         self.assertIn('data quality failed', result['telegram_text'].lower())
+
+    def test_debate_setup_creates_case_file_on_wait(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = rpc_server.debate_setup({
+                'symbol': 'EUR/USD',
+                'timeframe': '4H',
+                'chart_notes': 'random sideways candles in the middle of range',
+                'timestamp': '2026-10-03T07:32:57+03:00',
+                'case_sequence': 1,
+                'case_root': tmp,
+                'max_agents': 2,
+            })
+            self.assertEqual(result['status'], 'WAIT')
+            self.assertEqual(result['case_id'], 'EURUSD-20261003-001')
+            self.assertTrue(Path(result['case_dir']).exists())
+            self.assertTrue((Path(result['case_dir']) / 'case.json').exists())
+            self.assertTrue((Path(result['case_dir']) / 'gate.json').exists())
 
 
 if __name__ == '__main__':
