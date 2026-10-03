@@ -1,0 +1,48 @@
+flow_name: ForexAgents HQ Scan and Debate
+trigger:
+  telegram_commands:
+    - /scan
+    - /debate
+    - /best
+    - /watch
+    - /rules
+    - /status
+  schedules:
+    athens_watch_windows:
+      - '05:00-11:00'
+      - '18:00-23:00'
+stages:
+  - id: analyst_stage
+    mode: parallel
+    agents:
+      - market_data
+      - htf_bias
+      - session_timing
+      - structure
+      - pattern
+      - news
+  - id: research_debate
+    mode: alternating_debate
+    order:
+      - bull
+      - bear
+      - bull
+      - bear
+    manager: research_manager
+  - id: trader_plan
+    mode: single
+    agent: trader
+  - id: risk_debate
+    mode: challenge_panel
+    order:
+      - aggressive_risk
+      - conservative_risk
+      - neutral_risk
+  - id: boss_decision
+    mode: final
+    agent: nova_boss
+  - id: journal_and_telegram
+    mode: output
+    agents:
+      - telegram_manager
+      - journal_tester

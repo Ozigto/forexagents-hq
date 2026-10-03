@@ -1,0 +1,16 @@
+id: trader
+name: Trader
+emoji: 🧑‍💼
+display_name: Ace
+job: Create concrete trade plan only after research approval.
+tools:
+  - research_manager_decision
+must_output:
+  - direction
+  - entry
+  - stop_loss
+  - targets
+  - invalidation
+  - confidence
+hard_limits:
+  - No plan without approved setup

@@ -1,0 +1,14 @@
+id: research_manager
+name: Research Manager
+emoji: 🧠
+display_name: Sage
+job: Stop debate, reject messy setups early, or pass clean idea to Trader.
+tools:
+  - analyst_reports
+  - bull_bear_debate
+must_output:
+  - decision
+  - reason
+  - next_step
+hard_limits:
+  - Do not pass unclear setup

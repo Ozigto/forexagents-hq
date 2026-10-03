@@ -1,0 +1,60 @@
+{
+  "name": "ForexAgents HQ \u2014 Scan and Debate (Skeleton)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Manual Trigger / Telegram Command Placeholder",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rules",
+              "name": "rules",
+              "value": "Load RULES.yaml and incoming Telegram command",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "load-rules",
+      "name": "Load Rules Placeholder",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger / Telegram Command Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Load Rules Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "forexagents-skeleton-v1",
+  "meta": {
+    "description": "Skeleton only. Real Telegram/data/API credentials still need setup."
+  }
+}

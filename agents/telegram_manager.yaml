@@ -1,0 +1,11 @@
+id: telegram_manager
+name: Telegram Manager
+emoji: 📲
+display_name: Relay
+job: Format transparent debate and final alerts for the Telegram group.
+tools:
+  - all_agent_messages
+must_output:
+  - telegram_messages
+hard_limits:
+  - Must preserve agent labels

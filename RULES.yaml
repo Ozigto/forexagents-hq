@@ -1,0 +1,78 @@
+version: 1
+owner: Ozzi
+boss: NOVA
+mode: research_signals_only
+markets:
+  watchlist:
+    - EUR/USD
+    - GBP/USD
+    - USD/JPY
+    - USD/CHF
+    - AUD/USD
+    - NZD/USD
+    - USD/CAD
+    - XAU/USD
+  pair_rule: Any allowed pair can work if the pattern is clean. Do not bias toward screenshot examples.
+patterns:
+  - name: 4H 21 EMA Break + Retest
+    timeframe: 4H
+    long:
+      - price breaks above important structure/resistance
+      - price is above/reclaiming/supported by 21 EMA
+      - price retests broken level and/or 21 EMA area
+      - bullish confirmation after retest
+      - stop below retest low/invalidation
+    short:
+      - price breaks below important structure/support
+      - price is below/losing/rejecting 21 EMA
+      - price retests broken level and/or 21 EMA area
+      - bearish confirmation after retest
+      - stop above retest high/invalidation
+  - name: 1H/4H Pin Bar Rejection
+    timeframe: [1H, 4H]
+    buy:
+      - long lower wick rejects important support/zone/EMA
+      - close shows bullish reaction
+      - stop below wick low
+    sell:
+      - long upper wick rejects important resistance/zone/EMA
+      - close shows bearish reaction
+      - stop above wick high
+    quality_filter:
+      - must be at meaningful level
+      - reject middle-of-nowhere candles
+      - reject chop
+      - reject near dangerous news
+sessions:
+  timezone: Europe/Athens
+  watch_windows:
+    - '05:00-11:00'
+    - '18:00-23:00'
+  management_window: '19:00-00:00 depending on trade movement'
+risk:
+  lot_size: 1.0
+  risk_usd_normal: 150
+  risk_usd_a_plus: 200
+  weekly_target_usd: '1000-1500'
+  weekly_quality_shots: '5-7'
+  perfect_entries_per_week: 1
+  second_chance_if_first_loses: true
+alerts:
+  show_transparent_agent_debate: true
+  boss_only_final_alert: true
+  ozzi_final_human_decision: true
+  no_auto_trading: true
+
+professional_build:
+  research_first: true
+  nova_must_challenge_weak_ideas: true
+  no_rushing: true
+  require_evidence_for_major_choices: true
+  staged_delivery:
+    - spec
+    - research
+    - spike
+    - prototype
+    - test
+    - telegram_pilot
+    - scheduled_alerts

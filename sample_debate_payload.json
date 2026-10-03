@@ -1,0 +1,9 @@
+{
+  "symbol": "XAU/USD",
+  "timeframe": "4H",
+  "input_type": "controlled_notes",
+  "chart_notes": "Price is pulling back toward the 21 EMA after a strong bullish move. Possible break and retest but candle has not closed yet.",
+  "ozzi_notes": "Check if this is A+ or only watch. Use my 4H 21 EMA break and retest rules.",
+  "max_agents": 3,
+  "agent_timeout_seconds": 120
+}
