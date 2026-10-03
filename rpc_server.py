@@ -16,6 +16,7 @@ import os
 import subprocess
 import tempfile
 import time
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -50,6 +51,55 @@ DISPLAY = {
 }
 
 DISPLAY_TO_AGENT = {display.lower(): agent_id for agent_id, (_emoji, display) in DISPLAY.items()}
+
+TIMEFRAME_MINUTES = {
+    '1H': 60,
+    'H1': 60,
+    '4H': 240,
+    'H4': 240,
+}
+
+
+def _parse_iso(value: str) -> datetime:
+    return datetime.fromisoformat(value)
+
+
+def check_snapshot_quality(snapshot: dict[str, Any], now: str | None) -> dict[str, Any]:
+    """Fail closed on bad shared evidence before any agent debate."""
+    vetoes: list[str] = []
+    warnings: list[str] = []
+    timeframe = str(snapshot.get('timeframe', '')).upper().replace('H1', '1H').replace('H4', '4H')
+    tf_minutes = TIMEFRAME_MINUTES.get(timeframe)
+    if not snapshot.get('symbol'):
+        vetoes.append('missing_symbol')
+    if not tf_minutes:
+        vetoes.append('unsupported_timeframe')
+    candles = snapshot.get('candles') or []
+    if not candles:
+        vetoes.append('missing_candles')
+    completed = snapshot.get('completed_candle') or {}
+    if not completed.get('time'):
+        vetoes.append('missing_completed_candle')
+    times = [c.get('time') for c in candles if c.get('time')]
+    if len(times) != len(set(times)):
+        vetoes.append('duplicate_candles')
+    if now and tf_minutes and completed.get('time'):
+        age_minutes = (_parse_iso(now) - _parse_iso(completed['time'])).total_seconds() / 60
+        if age_minutes > tf_minutes * 1.25:
+            vetoes.append('stale_data')
+        elif age_minutes < 0:
+            vetoes.append('future_candle')
+    if now and snapshot.get('data_timestamp'):
+        data_age = (_parse_iso(now) - _parse_iso(snapshot['data_timestamp'])).total_seconds() / 60
+        if data_age < 0:
+            vetoes.append('future_data_timestamp')
+    elif not snapshot.get('data_timestamp'):
+        warnings.append('missing_data_timestamp')
+    return {
+        'decision': 'WAIT' if vetoes else 'PASS',
+        'vetoes': vetoes,
+        'warnings': warnings,
+    }
 
 
 
@@ -200,6 +250,21 @@ def evidence_gate(setup: dict[str, Any]) -> dict[str, Any]:
     notes = ' '.join(str(setup.get(key, '')) for key in ('chart_notes', 'ozzi_notes', 'notes', 'text')).lower()
     timeframe = str(setup.get('timeframe', '')).upper().replace('H1', '1H').replace('H4', '4H')
     symbol = str(setup.get('symbol', 'UNKNOWN'))
+    snapshot = setup.get('evidence_snapshot')
+    if isinstance(snapshot, dict):
+        quality = check_snapshot_quality(snapshot, setup.get('now'))
+        if quality['decision'] == 'WAIT':
+            return {
+                'decision': 'WAIT',
+                'status': 'WAIT',
+                'symbol': symbol,
+                'timeframe': timeframe or 'UNKNOWN',
+                'patterns': [],
+                'evidence_grade': 'insufficient',
+                'reasons': ['Data quality failed before LLM debate.'],
+                'unknowns': quality.get('warnings', []),
+                'vetoes': quality.get('vetoes', []),
+            }
     patterns: list[str] = []
     reasons: list[str] = []
     unknowns: list[str] = []

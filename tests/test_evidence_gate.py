@@ -49,6 +49,33 @@ class EvidenceGateTests(unittest.TestCase):
         self.assertEqual(gate['decision'], 'DEBATE')
         self.assertIn('pinbar_rejection', gate['patterns'])
 
+    def test_stale_evidence_snapshot_waits_without_calling_agents(self):
+        calls = []
+        original = rpc_server.run_hermes_agent
+        rpc_server.run_hermes_agent = lambda *args, **kwargs: calls.append(args) or 'SHOULD NOT RUN'
+        try:
+            result = rpc_server.debate_setup({
+                'symbol': 'XAU/USD',
+                'timeframe': '4H',
+                'chart_notes': '4H bullish break above resistance and retest to 21 EMA, candle close holding support',
+                'evidence_snapshot': {
+                    'symbol': 'XAU/USD',
+                    'timeframe': '4H',
+                    'data_timestamp': '2026-10-03T08:05:00+03:00',
+                    'completed_candle': {'time': '2026-10-03T00:00:00+03:00'},
+                    'candles': [{'time': '2026-10-03T00:00:00+03:00'}],
+                },
+                'now': '2026-10-03T12:30:00+03:00',
+                'max_agents': 2,
+            })
+        finally:
+            rpc_server.run_hermes_agent = original
+
+        self.assertEqual(result['status'], 'WAIT')
+        self.assertIn('stale_data', result['gate']['vetoes'])
+        self.assertEqual(calls, [])
+        self.assertIn('data quality failed', result['telegram_text'].lower())
+
 
 if __name__ == '__main__':
     unittest.main()
