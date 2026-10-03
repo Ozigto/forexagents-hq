@@ -21,6 +21,12 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from team_card import build_team_card
+
 N8N_ROOT = Path('/Volumes/AI-Brain/n8n-Automation')
 N8N_DATA = N8N_ROOT / 'data' / '.n8n'
 STATE_FILE = ROOT / '.telegram_bridge_state.json'
@@ -111,6 +117,36 @@ def telegram_api(token: str, method: str, payload: dict[str, Any] | None = None)
         return json.loads(resp.read().decode('utf-8'))
 
 
+def telegram_send_photo(token: str, chat_id: int, photo_path: Path, caption: str = '') -> dict[str, Any]:
+    """Send a local PNG/JPEG photo to Telegram without exposing the token."""
+    boundary = '----ForexAgentsHQBoundary7MA4YWxkTrZu0gW'
+    url = f'https://api.telegram.org/bot{token}/sendPhoto'
+    photo_path = Path(photo_path)
+    fields = {
+        'chat_id': str(chat_id),
+        'caption': caption,
+    }
+    body = bytearray()
+    for key, value in fields.items():
+        body.extend(f'--{boundary}\r\n'.encode())
+        body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
+        body.extend(str(value).encode())
+        body.extend(b'\r\n')
+    body.extend(f'--{boundary}\r\n'.encode())
+    body.extend(f'Content-Disposition: form-data; name="photo"; filename="{photo_path.name}"\r\n'.encode())
+    body.extend(b'Content-Type: image/png\r\n\r\n')
+    body.extend(photo_path.read_bytes())
+    body.extend(b'\r\n')
+    body.extend(f'--{boundary}--\r\n'.encode())
+    req = urllib.request.Request(
+        url,
+        data=bytes(body),
+        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.loads(resp.read().decode('utf-8'))
+
+
 def parse_command(text: str | None) -> dict[str, Any] | None:
     if not text or not text.startswith('/'):
         return None
@@ -156,12 +192,25 @@ def build_visible_agent_status(symbol: str, timeframe: str) -> str:
     This is not fake analysis. It tells Ozzi the desk is opening the case
     and which agents are about to challenge the setup.
     """
-    return '\n\n'.join([
+    return '\n'.join([
         f'🏢 ForexAgents HQ company room — {symbol} {timeframe}',
-        '📊 Atlas: I am opening the case. First I need to know whether we have real candle evidence or only a chart note.',
-        '🔎 Iris: I will not call a setup valid unless it matches Ozzi’s two patterns: 4H EMA21 break/retest or 1H/4H pin-bar rejection.',
-        '🐻 Vega: Good. If the evidence is thin, I’m going to challenge it instead of letting the room pretend there is a trade.',
-        '👑 NOVA: Exactly. Talk like a desk, not like a checklist. If the setup is weak, we still explain why and protect Ozzi.',
+        '',
+        '📊 Atlas: I am opening the case. First question: do we have real candles, or only a note?',
+        '🧭 Aurora: I’ll read the higher-timeframe bias, but I need clean structure before I lean bullish or bearish.',
+        '🕒 Selena: I’m watching the session window. Timing matters; a good pattern at bad timing is still danger.',
+        '📐 Maya: I’ll mark structure — break, retest, support, resistance, invalidation.',
+        '🔎 Iris: I’ll only pass Ozzi’s two patterns: 4H EMA21 break/retest or 1H/4H pin-bar rejection.',
+        '📰 Echo: I’m checking news risk. If there is red news near the setup, the room slows down.',
+        '🐂 Titan: If evidence passes, I’ll build the bull case — but I won’t force one.',
+        '🐻 Vega: I’ll attack the setup. If it’s weak, I’ll say no before money is at risk.',
+        '🧠 Sage: I’ll judge the debate and separate facts from opinions.',
+        '🧑‍💼 Ava: I’ll think like the trader: entry, stop, target, and whether this is worth Ozzi’s shot.',
+        '⚔️ Blaze: I’ll look for opportunity, but only after the gate proves there is a real setup.',
+        '🛡 Gaia: I’m protecting capital first. Bad evidence means no trade.',
+        '⚖️ Balance: I’ll weigh risk versus reward without hype.',
+        '📲 Rhea: I’ll keep the group readable — full room visible, no useless spam.',
+        '🧪 Lyra: I’ll make sure the case is saved for replay and review.',
+        '👑 NOVA: Good. Whole desk is present. If the evidence is weak, we WAIT. If it is real, the debate starts.',
     ])[:3900]
 
 
@@ -258,12 +307,21 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
             continue
         message = update.get('message') or {}
         chat_id = (message.get('chat') or {}).get('id')
+        if chat_id is None:
+            continue
         cmd = parse_command(message.get('text'))
         if not cmd:
             continue
         if cmd['command'] == 'status':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_status_reply(rpc_health())})
         elif cmd['command'] == 'scan':
+            card_path = build_team_card(cmd['symbol'], cmd['timeframe'])
+            telegram_send_photo(
+                token,
+                chat_id,
+                card_path,
+                caption=f'🏢 ForexAgents HQ desk opened — {cmd["symbol"]} {cmd["timeframe"]}',
+            )
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:
                 rpc = call_rpc_scan(cmd['symbol'], cmd['timeframe'], cmd.get('args', ''))
