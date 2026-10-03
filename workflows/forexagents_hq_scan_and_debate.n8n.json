@@ -195,5 +195,7 @@
   "meta": {
     "description": "Import-ready n8n workflow. Manual path works now. Telegram nodes stay disabled until @ozzi_nova_bot credential and group chat id are safely configured."
   },
-  "tags": []
+  "tags": [],
+  "id": "forexagents-hq-rpc-debate-telegram",
+  "active": false
 }
