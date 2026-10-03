@@ -49,6 +49,9 @@ DISPLAY = {
     'nova_boss': ('👑', 'NOVA'),
 }
 
+DISPLAY_TO_AGENT = {display.lower(): agent_id for agent_id, (_emoji, display) in DISPLAY.items()}
+
+
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding='utf-8', errors='replace') if path.exists() else ''
@@ -62,7 +65,7 @@ def load_agent(agent_id: str) -> dict[str, str]:
     }
 
 
-def run_hermes_agent(agent_id: str, setup: dict[str, Any], transcript: list[dict[str, str]]) -> str:
+def run_hermes_agent(agent_id: str, setup: dict[str, Any], transcript: list[dict[str, str]], extra_task: str | None = None) -> str:
     """Call Hermes for one agent response."""
     emoji, display = DISPLAY.get(agent_id, ('🤖', agent_id))
     agent = load_agent(agent_id)
@@ -97,9 +100,9 @@ PREVIOUS AGENT MESSAGES:
 {prior}
 
 TASK:
-Respond as {emoji} {display} only. Be concise, professional, and specific.
+{extra_task or f'Respond as {emoji} {display} only. Be concise, professional, and specific.'}
 If you need to question another agent, include a line like:
-"{emoji} {display} -> [AgentName]: question"
+"{emoji} {display} -> Hunter: question"
 Do not pretend to have live data if it was not provided. Say what is missing.
 Output 3-8 short bullet lines max.
 """.strip()
@@ -124,8 +127,14 @@ Output 3-8 short bullet lines max.
         out = (proc.stdout or '').strip()
         if proc.returncode != 0:
             return f"ERROR: Hermes call failed for {display}: {out[-800:]}"
-        # Strip trailing session_id noise if present, keep content.
-        lines = [ln for ln in out.splitlines() if not ln.startswith('session_id:')]
+        # Strip Hermes CLI noise/trailing session_id, keep agent content.
+        lines = []
+        for ln in out.splitlines():
+            if ln.startswith('session_id:'):
+                continue
+            if ln.startswith('Warning: Unknown toolsets:'):
+                continue
+            lines.append(ln)
         return '\n'.join(lines).strip() or 'No response.'
     except subprocess.TimeoutExpired:
         return f"ERROR: {display} timed out."
@@ -136,10 +145,57 @@ Output 3-8 short bullet lines max.
             pass
 
 
+
+def extract_agent_questions(message: str) -> list[tuple[str, str]]:
+    """Extract simple agent-to-agent questions from lines like 'Atlas -> Hunter: ...'."""
+    questions: list[tuple[str, str]] = []
+    for raw in message.splitlines():
+        line = raw.strip().lstrip('-• ').strip()
+        if '->' not in line or ':' not in line:
+            continue
+        left, rest = line.split('->', 1)
+        target_part, question = rest.split(':', 1)
+        # Remove emoji/brackets and keep the last word-ish display name.
+        target = target_part.replace('[', ' ').replace(']', ' ').strip()
+        target_tokens = [tok.strip(' ,.:;') for tok in target.split() if tok.strip(' ,.:;')]
+        for tok in reversed(target_tokens):
+            agent_id = DISPLAY_TO_AGENT.get(tok.lower())
+            if agent_id:
+                q = question.strip()
+                if q.endswith('?') or len(q) > 12:
+                    questions.append((agent_id, q))
+                break
+    return questions
+
+
+def answer_cross_questions(setup: dict[str, Any], transcript: list[dict[str, str]], new_message: str, asked: set[tuple[str, str]]) -> list[dict[str, str]]:
+    """Let targeted agents answer direct questions, bounded to avoid loops/spam."""
+    max_q = int(setup.get('max_cross_questions', 4))
+    answers: list[dict[str, str]] = []
+    for target_agent, question in extract_agent_questions(new_message):
+        key = (target_agent, question.lower()[:120])
+        if key in asked or len(asked) >= max_q:
+            continue
+        asked.add(key)
+        emoji, display = DISPLAY.get(target_agent, ('🤖', target_agent))
+        task = f"Answer this direct question from another ForexAgents agent. Question: {question}\nUse the setup input and previous transcript. If data is missing, say so. Do not invent facts."
+        msg = run_hermes_agent(target_agent, setup, transcript, extra_task=task)
+        answers.append({
+            'stage': 'cross_question',
+            'agent_id': target_agent,
+            'emoji': emoji,
+            'display': display,
+            'message': msg,
+        })
+        transcript.append(answers[-1])
+    return answers
+
+
 def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
     """Run a real, staged agent conversation over provided setup input."""
     started = time.time()
     transcript: list[dict[str, str]] = []
+    asked_questions: set[tuple[str, str]] = set()
     # Allow smoke tests to run only part of the company, but default is the professional flow.
     max_agents = setup.get('max_agents')
     count = 0
@@ -149,14 +205,17 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
                 break
             emoji, display = DISPLAY.get(agent_id, ('🤖', agent_id))
             msg = run_hermes_agent(agent_id, setup, transcript)
-            transcript.append({
+            entry = {
                 'stage': stage,
                 'agent_id': agent_id,
                 'emoji': emoji,
                 'display': display,
                 'message': msg,
-            })
+            }
+            transcript.append(entry)
             count += 1
+            for _answer in answer_cross_questions(setup, transcript, msg, asked_questions):
+                pass
         if max_agents is not None and count >= int(max_agents):
             break
     journal_id = f"run-{int(started)}"
