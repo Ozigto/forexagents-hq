@@ -1,3 +1,0 @@
-# Ozzi Decision
-
-Pending.
