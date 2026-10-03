@@ -150,6 +150,41 @@ def write_case_transcript(case_dir: str | Path, transcript: list[dict[str, str]]
     (path / 'analyst_reports.json').write_text(json.dumps(analyst_reports, indent=2, ensure_ascii=False), encoding='utf-8')
 
 
+def build_nova_decision_card(case: dict[str, Any], gate: dict[str, Any], status: str, transcript: list[dict[str, str]] | None = None) -> str:
+    """Create the clean decision card Relay can post to Telegram."""
+    reasons = gate.get('reasons') or []
+    unknowns = gate.get('unknowns') or []
+    vetoes = gate.get('vetoes') or []
+    main_reason = reasons[0] if reasons else 'Decision based on current evidence gate and company rules.'
+    if vetoes:
+        main_reason += f" Vetoes: {', '.join(vetoes)}."
+    if unknowns:
+        main_reason += f" Unknowns: {', '.join(unknowns)}."
+    ozzi_action = 'No trade. Wait for a cleaner setup or better evidence.' if status == 'WAIT' else 'Review the case before any decision.'
+    pattern = ', '.join(gate.get('patterns') or []) or 'none'
+    return f"""👑 NOVA DECISION
+
+Case: {case.get('case_id')}
+Status: {status}
+Pair: {gate.get('symbol', case.get('symbol', 'UNKNOWN'))}
+Pattern: {pattern}
+Evidence Grade: {gate.get('evidence_grade', 'insufficient')}
+Main Reason: {main_reason}
+Invalidation: not available yet
+Risk: not available yet
+News Risk: not available yet
+Next Check Time: wait for next valid evidence snapshot
+Ozzi Action: {ozzi_action}
+""".strip() + "\n"
+
+
+def write_nova_decision_card(case_dir: str | Path, case: dict[str, Any], gate: dict[str, Any], status: str, transcript: list[dict[str, str]] | None = None) -> str:
+    card = build_nova_decision_card(case, gate, status, transcript)
+    Path(case_dir).mkdir(parents=True, exist_ok=True)
+    (Path(case_dir) / 'nova_decision.md').write_text(card, encoding='utf-8')
+    return card
+
+
 def load_agent(agent_id: str) -> dict[str, str]:
     return {
         'id': agent_id,
@@ -371,6 +406,7 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
         journal_id = f"run-{int(started)}"
         journal_path = ROOT / 'journal' / f'{journal_id}.json'
         telegram_text = format_gate_wait(gate)
+        decision_card = write_nova_decision_card(case['case_dir'], case, gate, 'WAIT', transcript)
         journal_path.write_text(json.dumps({
             'id': journal_id,
             'case_id': case['case_id'],
@@ -421,6 +457,8 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
     journal_id = f"run-{int(started)}"
     journal_path = ROOT / 'journal' / f'{journal_id}.json'
     write_case_transcript(case['case_dir'], transcript)
+    decision_status = 'WATCH'
+    write_nova_decision_card(case['case_dir'], case, gate, decision_status, transcript)
     journal_path.write_text(json.dumps({
         'id': journal_id,
         'case_id': case['case_id'],

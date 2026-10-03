@@ -117,6 +117,25 @@ class EvidenceGateTests(unittest.TestCase):
         finally:
             rpc_server.run_hermes_agent = original
 
+    def test_debate_setup_writes_nova_decision_card(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = rpc_server.debate_setup({
+                'symbol': 'EUR/USD',
+                'timeframe': '4H',
+                'chart_notes': 'random sideways candles in the middle of range',
+                'timestamp': '2026-10-03T07:32:57+03:00',
+                'case_sequence': 3,
+                'case_root': tmp,
+                'max_agents': 2,
+            })
+            card = Path(result['case_dir']) / 'nova_decision.md'
+            text = card.read_text()
+            self.assertIn('👑 NOVA DECISION', text)
+            self.assertIn('Case: EURUSD-20261003-003', text)
+            self.assertIn('Status: WAIT', text)
+            self.assertIn('Evidence Grade: insufficient', text)
+            self.assertIn('Ozzi Action:', text)
+
 
 if __name__ == '__main__':
     unittest.main()
