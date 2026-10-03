@@ -25,8 +25,6 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from team_card import build_team_card
-
 N8N_ROOT = Path('/Volumes/AI-Brain/n8n-Automation')
 N8N_DATA = N8N_ROOT / 'data' / '.n8n'
 STATE_FILE = ROOT / '.telegram_bridge_state.json'
@@ -239,6 +237,41 @@ def rpc_health() -> bool:
         return False
 
 
+def build_team_card_safe(symbol: str, timeframe: str) -> Path | None:
+    """Build the team card if image dependencies are available.
+
+    The Telegram bridge must keep replying even if Pillow/image generation fails.
+    If the bridge Python cannot import Pillow, fall back to the system Python
+    verified on Ozzi's Mac.
+    """
+    try:
+        from team_card import build_team_card
+        return build_team_card(symbol, timeframe)
+    except Exception as exc:
+        print(f'WARN team card primary builder failed: {exc}', flush=True)
+    try:
+        code = (
+            'import sys; '
+            'from team_card import build_team_card; '
+            'print(build_team_card(sys.argv[1], sys.argv[2]))'
+        )
+        proc = subprocess.run(
+            ['/usr/local/bin/python3', '-c', code, symbol, timeframe],
+            cwd=str(SCRIPT_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return Path(proc.stdout.strip())
+        print(f'WARN team card fallback failed: {proc.stderr.strip()}', flush=True)
+    except Exception as exc:
+        print(f'WARN team card fallback crashed: {exc}', flush=True)
+    return None
+
+
 def call_rpc_scan(symbol: str, timeframe: str, notes: str) -> dict[str, Any]:
     payload = {
         'symbol': symbol,
@@ -315,13 +348,17 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
         if cmd['command'] == 'status':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_status_reply(rpc_health())})
         elif cmd['command'] == 'scan':
-            card_path = build_team_card(cmd['symbol'], cmd['timeframe'])
-            telegram_send_photo(
-                token,
-                chat_id,
-                card_path,
-                caption=f'🏢 ForexAgents HQ desk opened — {cmd["symbol"]} {cmd["timeframe"]}',
-            )
+            card_path = build_team_card_safe(cmd['symbol'], cmd['timeframe'])
+            if card_path is not None:
+                try:
+                    telegram_send_photo(
+                        token,
+                        chat_id,
+                        card_path,
+                        caption=f'🏢 ForexAgents HQ desk opened — {cmd["symbol"]} {cmd["timeframe"]}',
+                    )
+                except Exception as exc:
+                    print(f'WARN team card send skipped: {exc}', flush=True)
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:
                 rpc = call_rpc_scan(cmd['symbol'], cmd['timeframe'], cmd.get('args', ''))

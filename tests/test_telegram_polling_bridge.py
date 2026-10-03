@@ -117,7 +117,7 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         with patch.object(bridge, 'get_updates', return_value=[update]), \
              patch.object(bridge, 'telegram_api', side_effect=fake_api), \
              patch.object(bridge, 'telegram_send_photo', side_effect=fake_photo), \
-             patch.object(bridge, 'build_team_card', return_value=ROOT / 'assets' / 'generated' / 'test_card.png'), \
+             patch.object(bridge, 'build_team_card_safe', return_value=ROOT / 'assets' / 'generated' / 'test_card.png'), \
              patch.object(bridge, 'call_rpc_scan', return_value={'gate': {'status': 'WAIT', 'evidence_grade': 'insufficient'}, 'transcript': []}), \
              patch.object(bridge, 'save_state'):
             bridge.bridge_once('fake-token', -5570804166, 6245975134, state)
