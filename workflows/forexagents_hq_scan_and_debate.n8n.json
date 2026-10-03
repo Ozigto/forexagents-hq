@@ -27,7 +27,7 @@
         -760,
         120
       ],
-      "disabled": true,
+      "disabled": false,
       "notesInFlow": true,
       "notes": "Enable this after adding @ozzi_nova_bot Telegram credentials in n8n. Keep disabled until token/chat allowlist is ready.",
       "credentials": {
@@ -209,5 +209,5 @@
   },
   "tags": [],
   "id": "forexagents-hq-rpc-debate-telegram",
-  "active": false
+  "active": true
 }
