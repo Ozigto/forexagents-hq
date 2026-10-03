@@ -141,6 +141,15 @@ def create_rpc_case(setup: dict[str, Any], gate: dict[str, Any]) -> dict[str, An
     )
 
 
+def write_case_transcript(case_dir: str | Path, transcript: list[dict[str, str]]) -> None:
+    """Persist agent outputs into the case folder."""
+    path = Path(case_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    (path / 'debate.json').write_text(json.dumps(transcript, indent=2, ensure_ascii=False), encoding='utf-8')
+    analyst_reports = [m for m in transcript if m.get('stage') == 'analysts']
+    (path / 'analyst_reports.json').write_text(json.dumps(analyst_reports, indent=2, ensure_ascii=False), encoding='utf-8')
+
+
 def load_agent(agent_id: str) -> dict[str, str]:
     return {
         'id': agent_id,
@@ -411,6 +420,7 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
             break
     journal_id = f"run-{int(started)}"
     journal_path = ROOT / 'journal' / f'{journal_id}.json'
+    write_case_transcript(case['case_dir'], transcript)
     journal_path.write_text(json.dumps({
         'id': journal_id,
         'case_id': case['case_id'],

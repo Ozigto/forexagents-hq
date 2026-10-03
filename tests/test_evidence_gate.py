@@ -94,6 +94,29 @@ class EvidenceGateTests(unittest.TestCase):
             self.assertTrue((Path(result['case_dir']) / 'case.json').exists())
             self.assertTrue((Path(result['case_dir']) / 'gate.json').exists())
 
+    def test_debate_setup_writes_transcript_to_case_file(self):
+        original = rpc_server.run_hermes_agent
+        rpc_server.run_hermes_agent = lambda agent_id, *args, **kwargs: f'{agent_id} response'
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                result = rpc_server.debate_setup({
+                    'symbol': 'XAU/USD',
+                    'timeframe': '4H',
+                    'chart_notes': '4H bullish break above resistance and retest to 21 EMA, candle close holding support',
+                    'timestamp': '2026-10-03T07:32:57+03:00',
+                    'case_sequence': 2,
+                    'case_root': tmp,
+                    'max_agents': 2,
+                })
+                debate_file = Path(result['case_dir']) / 'debate.json'
+                self.assertTrue(debate_file.exists())
+                import json
+                debate = json.loads(debate_file.read_text())
+                self.assertEqual(len(debate), len(result['transcript']))
+                self.assertEqual(debate[0]['agent_id'], 'market_data')
+        finally:
+            rpc_server.run_hermes_agent = original
+
 
 if __name__ == '__main__':
     unittest.main()
