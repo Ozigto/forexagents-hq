@@ -1,46 +1,184 @@
 {
-  "name": "ForexAgents HQ \u2014 Scan and Debate (Skeleton)",
+  "name": "ForexAgents HQ — RPC Debate to Telegram",
   "nodes": [
     {
       "parameters": {},
-      "id": "trigger-manual",
-      "name": "Manual Trigger / Telegram Command Placeholder",
+      "id": "manual-trigger",
+      "name": "Manual Test Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        0,
+        -760,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger — /scan",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -760,
+        120
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Enable this after adding @ozzi_nova_bot Telegram credentials in n8n. Keep disabled until token/chat allowlist is ready."
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json || {};\nconst message = input.message || {};\nconst text = message.text || input.text || '';\nconst chatId = message.chat?.id || input.chat_id || input.chatId || '';\n\nlet symbol = 'XAU/USD';\nlet timeframe = '4H';\nlet notes = text;\n\n// Supported command examples:\n// /scan XAU/USD 4H price pulled back to 21 EMA after bullish break\n// /scan EUR/USD 1H pin bar rejection at support\nconst cleaned = text.replace(/^\\/scan/i, '').trim();\nif (cleaned) {\n  const parts = cleaned.split(/\\s+/);\n  if (parts[0] && /^[A-Z]{3}\\/?[A-Z]{3}$|^XAU\\/?USD$/i.test(parts[0])) {\n    symbol = parts.shift().toUpperCase().replace('XAUUSD', 'XAU/USD');\n    if (!symbol.includes('/') && symbol.length === 6) symbol = symbol.slice(0, 3) + '/' + symbol.slice(3);\n  }\n  if (parts[0] && /^(1H|4H|H1|H4)$/i.test(parts[0])) {\n    timeframe = parts.shift().toUpperCase().replace('H1', '1H').replace('H4', '4H');\n  }\n  notes = parts.join(' ') || cleaned;\n}\n\nif (!notes || notes.toLowerCase() === '/scan') {\n  notes = 'Manual smoke test: price is pulling back toward the 21 EMA after a strong move. Decide WATCH / WAIT / REJECT / A+ CANDIDATE. Do not invent live data.';\n}\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    rpc_payload: {\n      symbol,\n      timeframe,\n      input_type: chatId ? 'telegram_group_notes' : 'manual_test',\n      chart_notes: notes,\n      ozzi_notes: 'Use Ozzi rules only: 4H 21 EMA break + retest, or 1H/4H pin bar rejection. Athens watch windows. Risk discipline $150-$200 only for high-quality setup. No auto-trading.',\n      max_agents: 8,\n      max_cross_questions: 6,\n      agent_timeout_seconds: 120\n    }\n  }\n}];"
+      },
+      "id": "build-rpc-payload",
+      "name": "Build RPC Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -460,
         0
       ]
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
+        "method": "POST",
+        "url": "http://127.0.0.1:18765/debate/setup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "rules",
-              "name": "rules",
-              "value": "Load RULES.yaml and incoming Telegram command",
-              "type": "string"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.rpc_payload) }}",
+        "options": {
+          "timeout": 900000
         }
       },
-      "id": "load-rules",
-      "name": "Load Rules Placeholder",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "id": "call-forexagents-rpc",
+      "name": "Call ForexAgents RPC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        260,
+        -160,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "Requires local RPC server running: /Volumes/AI-Brain/n8n-Automation/forexagents/run_rpc_server.sh"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rpc = $json;\nconst transcript = rpc.transcript || [];\nconst maxTelegram = 3900;\n\nlet text = rpc.telegram_text || '';\nif (!text && transcript.length) {\n  text = ['🏢 ForexAgents HQ — Team Debate'];\n  for (const m of transcript) {\n    text.push(`\\n${m.emoji || '🤖'} ${m.display || m.agent_id} (${m.stage})\\n${m.message || ''}`);\n  }\n  text = text.join('\\n');\n}\n\nif (!text) text = 'ForexAgents RPC returned no debate text.';\n\nconst footer = `\\n\\n🧾 journal: ${rpc.journal_id || 'none'} | elapsed: ${rpc.elapsed_seconds || '?'}s`;\ntext = text + footer;\n\nconst chunks = [];\nlet remaining = text;\nwhile (remaining.length > maxTelegram) {\n  let cut = remaining.lastIndexOf('\\n', maxTelegram);\n  if (cut < 1000) cut = maxTelegram;\n  chunks.push(remaining.slice(0, cut));\n  remaining = remaining.slice(cut).trim();\n}\nchunks.push(remaining);\n\nreturn chunks.map((chunk, index) => ({\n  json: {\n    chat_id: $('Build RPC Payload').first().json.chat_id,\n    text: chunks.length > 1 ? `${chunk}\\n\\nPart ${index + 1}/${chunks.length}` : chunk,\n    rpc_ok: rpc.ok,\n    journal_id: rpc.journal_id\n  }\n}));"
+      },
+      "id": "format-telegram-output",
+      "name": "Format Telegram Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
         0
       ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-to-telegram",
+      "name": "Send to Telegram Group",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        460,
+        -80
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Enable after Telegram credentials and group chat id are confirmed. Disabled now to avoid sending to the wrong chat."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual-test output for n8n executions when Telegram node is disabled.\nreturn items;"
+      },
+      "id": "manual-output-preview",
+      "name": "Manual Output Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        120
+      ],
+      "notesInFlow": true,
+      "notes": "Run manual test and inspect this node output before enabling Telegram."
     }
   ],
   "connections": {
-    "Manual Trigger / Telegram Command Placeholder": {
+    "Manual Test Trigger": {
       "main": [
         [
           {
-            "node": "Load Rules Placeholder",
+            "node": "Build RPC Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger — /scan": {
+      "main": [
+        [
+          {
+            "node": "Build RPC Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build RPC Payload": {
+      "main": [
+        [
+          {
+            "node": "Call ForexAgents RPC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call ForexAgents RPC": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Output": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram Group",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Manual Output Preview",
             "type": "main",
             "index": 0
           }
@@ -53,8 +191,9 @@
   },
   "staticData": null,
   "pinData": {},
-  "versionId": "forexagents-skeleton-v1",
+  "versionId": "forexagents-rpc-telegram-v2",
   "meta": {
-    "description": "Skeleton only. Real Telegram/data/API credentials still need setup."
-  }
+    "description": "Import-ready n8n workflow. Manual path works now. Telegram nodes stay disabled until @ozzi_nova_bot credential and group chat id are safely configured."
+  },
+  "tags": []
 }
