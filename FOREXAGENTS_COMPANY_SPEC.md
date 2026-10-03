@@ -62,7 +62,7 @@ Only watch alerts, final candidates, invalidations, and summaries are posted.
 v1 is complete when:
 
 - A Telegram group can run `/scan`.
-- The workflow posts all agent reports and debate messages.
+- The workflow posts short status, selected disagreements, and one clean NOVA decision card by default; `/full` can expose the full debate.
 - Boss final message says WATCH / WAIT / REJECT / A+ CANDIDATE.
 - Journal saves the full run.
 - No auto-trade path exists.
@@ -79,3 +79,16 @@ Rules:
 - Use staged delivery: spec -> spike -> prototype -> test -> Telegram pilot -> scheduled alerts.
 - Every agent must have a real job, tool access, limits, and measurable output.
 - No auto-trading in v1. Signals and research only.
+
+## Professional company quality gates
+
+ForexAgents is not allowed to waste calls or produce fake confidence.
+
+- Deterministic code checks whether an allowed setup is plausible before any LLM debate.
+- If neither 4H 21 EMA break/retest nor 1H/4H pin-bar rejection is plausible, output `WAIT` immediately.
+- All agents work from the same evidence snapshot.
+- Important claims require evidence: timeframe, level, candle time, condition, and invalidation.
+- NOVA has deterministic vetoes for stale data, missing candles, bad news window, invalid stop, risk over $200, wrong pattern, or weak evidence.
+- Telegram output is layered: status, selected disagreements, clean decision card, with `/full` for complete debate.
+- Replay mode is required before trusting live signals.
+

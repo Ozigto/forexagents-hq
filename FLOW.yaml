@@ -12,6 +12,20 @@ trigger:
       - '05:00-11:00'
       - '18:00-23:00'
 stages:
+  - id: evidence_gate
+    mode: deterministic_precheck
+    purpose: Build shared market snapshot and stop with WAIT if neither allowed pattern is plausible.
+    allowed_patterns:
+      - 4h_21ema_break_retest
+      - 1h_4h_pinbar_rejection
+    hard_vetoes:
+      - stale_data
+      - missing_completed_candles
+      - wrong_pattern
+      - dangerous_news_window
+      - invalid_stop
+      - risk_above_200
+      - unsupported_evidence
   - id: analyst_stage
     mode: parallel
     agents:

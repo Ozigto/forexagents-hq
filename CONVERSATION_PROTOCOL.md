@@ -54,3 +54,102 @@ NOVA Boss can only output:
 - `INVALIDATED`
 
 No auto-trading.
+
+## Professional evidence rules
+
+ForexAgents must behave like a professional trading desk, not like entertainment bots.
+
+### Deterministic pre-check gate
+
+Before any LLM/agent debate starts, deterministic code must check whether either of Ozzi's two allowed strategies is even plausible:
+
+1. 4H 21 EMA break + retest.
+2. 1H/4H pin bar rejection.
+
+If neither pattern is plausible, stop immediately with `WAIT` and do not spend LLM calls debating an empty chart.
+
+### Shared evidence layer
+
+Every run must start from one shared, timestamped market snapshot. Agents must not fetch or invent different facts.
+
+Required evidence fields when available:
+
+- symbol
+- timeframe
+- data timestamp
+- completed candle timestamp
+- current price
+- completed candles used
+- 21 EMA value
+- structure level(s)
+- break condition
+- retest condition
+- rejection/pin-bar condition
+- session window
+- spread
+- upcoming news risk
+- invalidation level
+
+No evidence means no trade. Missing evidence must be stated plainly.
+
+### Claim evidence requirement
+
+Every important claim must carry evidence. Example: Mason cannot say "bullish structure" alone. Mason must include timeframe, level, candle time, break condition, retest condition, and invalidation.
+
+Sage must reject unsupported claims.
+
+### Anti-groupthink rules
+
+- An agent cannot agree without explaining why.
+- Bull and Bear must identify the strongest argument against their own position.
+- Risk agents must independently evaluate Ace's proposal before seeing each other's conclusions.
+- NOVA must not approve because the debate sounds confident; evidence decides.
+
+### Deterministic NOVA vetoes
+
+These conditions block `A+ CANDIDATE` regardless of LLM persuasion:
+
+- dangerous news inside forbidden window
+- stale data
+- missing completed candles
+- invalid or missing stop
+- risk above Ozzi's $200 maximum
+- wrong pattern
+- poor/unsupported evidence
+- setup outside rules without explicit downgrade
+
+### Journal chain
+
+Every completed run should preserve this chain:
+
+```text
+market snapshot
+→ detected pattern
+→ analyst reports
+→ Bull/Bear claims
+→ Sage conclusion
+→ Ace proposal
+→ risk debate
+→ NOVA status
+→ Ozzi decision
+→ subsequent market outcome
+```
+
+### Agent scoring
+
+Do not give agents arbitrary reputation scores early. Score only after enough outcomes exist. Later, track whether agents overcall, reject too much, prevent losses, or identify quality setups.
+
+### Telegram visibility levels
+
+Do not dump every internal message by default. Telegram should have:
+
+1. Short agent status while analysis runs.
+2. Selected disagreements worth seeing.
+3. One clean NOVA decision card.
+
+A `/full` command can expose the complete debate for inspection.
+
+### Replay mode before trust
+
+Before trusting live signals, replay historical candle snapshots one timestamp at a time. Agents must never see future candles. Test 50, then 100, then hundreds of historical setups before live confidence.
+
