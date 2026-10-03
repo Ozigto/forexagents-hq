@@ -1,7 +1,7 @@
 id: aggressive_risk
 name: Aggressive Risk Agent
 emoji: ⚔️
-display_name: Blitz
+display_name: Blaze
 job: Argue if opportunity is worth taking earlier while respecting max risk.
 tools:
   - trade_plan

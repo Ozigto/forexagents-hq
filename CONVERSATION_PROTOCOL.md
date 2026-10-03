@@ -19,18 +19,18 @@ Every debate run must include at least two agent-to-agent questions when there i
 Examples:
 
 ```text
-🐻 Vega -> 🔎 Hunter:
+🐻 Vega -> 🔎 Iris:
 Is the pin bar confirmed after close or still forming?
 
-🔎 Hunter -> 🐻 Vega:
+🔎 Iris -> 🐻 Vega:
 Still forming. We need candle close; current wick can disappear.
 ```
 
 ```text
-🛡 Guard -> 🧑‍💼 Ace:
+🛡 Gaia -> 🧑‍💼 Ava:
 Your stop is 28 pips. Does that fit Ozzi's $150-$200 risk with 1 lot?
 
-🧑‍💼 Ace -> 🛡 Guard:
+🧑‍💼 Ava -> 🛡 Gaia:
 No, not as written. Proposal must tighten entry or be rejected.
 ```
 
@@ -94,7 +94,7 @@ No evidence means no trade. Missing evidence must be stated plainly.
 
 ### Claim evidence requirement
 
-Every important claim must carry evidence. Example: Mason cannot say "bullish structure" alone. Mason must include timeframe, level, candle time, break condition, retest condition, and invalidation.
+Every important claim must carry evidence. Example: Maya cannot say "bullish structure" alone. Maya must include timeframe, level, candle time, break condition, retest condition, and invalidation.
 
 Sage must reject unsupported claims.
 
@@ -102,7 +102,7 @@ Sage must reject unsupported claims.
 
 - An agent cannot agree without explaining why.
 - Bull and Bear must identify the strongest argument against their own position.
-- Risk agents must independently evaluate Ace's proposal before seeing each other's conclusions.
+- Risk agents must independently evaluate Ava's proposal before seeing each other's conclusions.
 - NOVA must not approve because the debate sounds confident; evidence decides.
 
 ### Deterministic NOVA vetoes
@@ -128,7 +128,7 @@ market snapshot
 → analyst reports
 → Bull/Bear claims
 → Sage conclusion
-→ Ace proposal
+→ Ava proposal
 → risk debate
 → NOVA status
 → Ozzi decision

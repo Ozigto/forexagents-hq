@@ -1,7 +1,7 @@
 id: structure
 name: Structure Analyst
 emoji: 📐
-display_name: Mason
+display_name: Maya
 job: Find support/resistance, break levels, retest zones, liquidity highs/lows.
 tools:
   - swing_high_low

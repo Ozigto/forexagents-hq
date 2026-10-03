@@ -1,7 +1,7 @@
 id: journal_tester
 name: Journal / Testing Agent
 emoji: 🧪
-display_name: Ledger
+display_name: Lyra
 job: Save every scan, debate, decision, result, and agent quality score.
 tools:
   - all_run_data

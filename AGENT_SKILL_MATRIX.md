@@ -9,7 +9,7 @@ Code establishes measurable facts.
 Agents reason about those facts.
 ```
 
-Titan, Vega, Sage, Ace, the Risk Board, and NOVA must not fetch their own candles/news independently. They receive the verified evidence snapshot from the specialist layer. This prevents the company from debating two different realities.
+Titan, Vega, Sage, Ava, the Risk Board, and NOVA must not fetch their own candles/news independently. They receive the verified evidence snapshot from the specialist layer. This prevents the company from debating two different realities.
 
 ## Three skill layers
 
@@ -27,10 +27,10 @@ company rules
 SPECIALIST SKILLS
 ────────────────────
 Atlas   → market data
-Orion   → bias
-Chronos → sessions
-Mason   → structure
-Hunter  → patterns
+Aurora   → bias
+Selena → sessions
+Maya   → structure
+Iris  → patterns
 Echo    → news
 
         ↓
@@ -39,7 +39,7 @@ REASONING SKILLS
 ────────────────────
 Titan/Vega → challenge
 Sage       → arbitrate
-Ace        → construct plan
+Ava        → construct plan
 Risk Board → stress test
 NOVA       → final classification
 ```
@@ -49,21 +49,21 @@ NOVA       → final classification
 | Agent | Core skills | Skill boundary |
 |---|---|---|
 | 📊 **Atlas** | OHLC candle retrieval, EMA21 calculation, spread, ATR/volatility, price normalization, data freshness validation | Builds market facts only. |
-| 🧭 **Orion** | W1/D1/H4 trend classification, multi-timeframe alignment, EMA context, higher-timeframe bias | Reads verified candles, does not create trade plan. |
-| 🕒 **Chronos** | Athens timezone, Asian/London/New York sessions, session transitions, allowed watch windows, timing quality | Timing quality only. |
-| 📐 **Mason** | Support/resistance, swing highs/lows, HH/HL/LH/LL, break of structure, retest zones | Structure evidence only. |
-| 🔎 **Hunter** | Ozzi's two pattern detectors: H4 EMA21 break/retest and H1/H4 pin-bar rejection | Pattern detection only; no trade approval. |
+| 🧭 **Aurora** | W1/D1/H4 trend classification, multi-timeframe alignment, EMA context, higher-timeframe bias | Reads verified candles, does not create trade plan. |
+| 🕒 **Selena** | Athens timezone, Asian/London/New York sessions, session transitions, allowed watch windows, timing quality | Timing quality only. |
+| 📐 **Maya** | Support/resistance, swing highs/lows, HH/HL/LH/LL, break of structure, retest zones | Structure evidence only. |
+| 🔎 **Iris** | Ozzi's two pattern detectors: H4 EMA21 break/retest and H1/H4 pin-bar rejection | Pattern detection only; no trade approval. |
 | 📰 **Echo** | Economic calendar, event importance, affected currencies, time-to-news, post-news danger window | News veto/risk only. |
 | 🐂 **Titan** | Evidence synthesis, bullish thesis construction, challenge bearish claims | Must not fetch candles/news; argues from snapshot. |
 | 🐻 **Vega** | Evidence synthesis, bearish thesis construction, attack weak assumptions and false confirmations | Must not fetch candles/news; argues from snapshot. |
 | 🧠 **Sage** | Debate arbitration, contradiction detection, evidence weighting, unresolved-question detection | Rejects unsupported claims; does not force consensus. |
-| 🧑‍💼 **Ace** | Entry, stop, invalidation, target, R:R, 1-lot dollar-risk calculation, trade-plan construction | Builds plan only after pattern/evidence gate passes. |
-| ⚔️ **Blitz** | Upside/opportunity analysis, continuation potential, aggressive scenario testing | Stress tests upside; no final approval. |
-| 🛡️ **Guard** | Capital protection, downside analysis, news exposure, stop vulnerability, veto checks | Protects capital; can recommend veto. |
+| 🧑‍💼 **Ava** | Entry, stop, invalidation, target, R:R, 1-lot dollar-risk calculation, trade-plan construction | Builds plan only after pattern/evidence gate passes. |
+| ⚔️ **Blaze** | Upside/opportunity analysis, continuation potential, aggressive scenario testing | Stress tests upside; no final approval. |
+| 🛡️ **Gaia** | Capital protection, downside analysis, news exposure, stop vulnerability, veto checks | Protects capital; can recommend veto. |
 | ⚖️ **Balance** | Neutral risk/reward assessment, scenario comparison, conflicting-evidence assessment | Independent neutral review. |
 | 👑 **NOVA** | Portfolio context, company rules, final evidence review, hard vetoes, candidate classification | Final classifier; deterministic vetoes override LLM confidence. |
-| 📲 **Relay** | Telegram receive/send, formatting, commands, threading/case IDs, anti-spam | Presentation only; cannot influence trading conclusion. |
-| 🧪 **Ledger** | Case storage, outcome tracking, MFE/MAE, R results, agent scoring, replay/backtesting | Records and evaluates; does not rewrite history. |
+| 📲 **Rhea** | Telegram receive/send, formatting, commands, threading/case IDs, anti-spam | Presentation only; cannot influence trading conclusion. |
+| 🧪 **Lyra** | Case storage, outcome tracking, MFE/MAE, R results, agent scoring, replay/backtesting | Records and evaluates; does not rewrite history. |
 
 ## Deterministic skills that are not LLM tasks
 
@@ -96,10 +96,10 @@ news in        = 143 minutes
 
                 ↓
 
-Mason:
+Maya:
 "Structure break confirmed."
 
-Hunter:
+Iris:
 "Break/retest requirements satisfied."
 
 Vega:

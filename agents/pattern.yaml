@@ -1,7 +1,7 @@
 id: pattern
 name: Pattern Analyst
 emoji: 🔎
-display_name: Hunter
+display_name: Iris
 job: Detect only Ozzi's two patterns.
 tools:
   - ema21

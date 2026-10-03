@@ -13,21 +13,21 @@ The bot will post as agent personas, not as separate Telegram bots.
 | Agent ID | Display | Role |
 |---|---|---|
 | `market_data` | 📊 Atlas | Market Data Analyst |
-| `htf_bias` | 🧭 Orion | HTF Bias Analyst |
-| `session_timing` | 🕒 Chronos | Session Timing Analyst |
-| `structure` | 📐 Mason | Structure Analyst |
-| `pattern` | 🔎 Hunter | Pattern Analyst |
+| `htf_bias` | 🧭 Aurora | HTF Bias Analyst |
+| `session_timing` | 🕒 Selena | Session Timing Analyst |
+| `structure` | 📐 Maya | Structure Analyst |
+| `pattern` | 🔎 Iris | Pattern Analyst |
 | `news` | 📰 Echo | News Risk Analyst |
 | `bull` | 🐂 Titan | Bull Researcher |
 | `bear` | 🐻 Vega | Bear Researcher |
 | `research_manager` | 🧠 Sage | Research Manager |
-| `trader` | 🧑‍💼 Ace | Trader |
-| `aggressive_risk` | ⚔️ Blitz | Aggressive Risk Agent |
-| `conservative_risk` | 🛡 Guard | Conservative Risk Agent |
+| `trader` | 🧑‍💼 Ava | Trader |
+| `aggressive_risk` | ⚔️ Blaze | Aggressive Risk Agent |
+| `conservative_risk` | 🛡 Gaia | Conservative Risk Agent |
 | `neutral_risk` | ⚖️ Balance | Neutral Risk Agent |
 | `nova_boss` | 👑 NOVA | Boss / Portfolio Manager |
-| `telegram_manager` | 📲 Relay | Telegram Manager |
-| `journal_tester` | 🧪 Ledger | Journal / Testing Agent |
+| `telegram_manager` | 📲 Rhea | Telegram Manager |
+| `journal_tester` | 🧪 Lyra | Journal / Testing Agent |
 
 
 ## Required Telegram group setup

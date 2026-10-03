@@ -1,7 +1,7 @@
 id: session_timing
 name: Session Timing Analyst
 emoji: 🕒
-display_name: Chronos
+display_name: Selena
 job: Judge Athens time windows and daily candle move context.
 tools:
   - clock

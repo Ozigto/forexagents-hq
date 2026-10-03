@@ -99,21 +99,21 @@ journal/*.json
 The company currently has 16 named agents/personas:
 
 1. 📊 **Atlas** — Market Data Analyst  
-2. 🧭 **Orion** — Weekly/Daily/4H Bias Analyst  
-3. 🕒 **Chronos** — Session Timing Analyst  
-4. 📐 **Mason** — Structure Analyst  
-5. 🔎 **Hunter** — Pattern Analyst  
+2. 🧭 **Aurora** — Weekly/Daily/4H Bias Analyst  
+3. 🕒 **Selena** — Session Timing Analyst  
+4. 📐 **Maya** — Structure Analyst  
+5. 🔎 **Iris** — Pattern Analyst  
 6. 📰 **Echo** — News Risk Analyst  
 7. 🐂 **Titan** — Bull Researcher  
 8. 🐻 **Vega** — Bear Researcher  
 9. 🧠 **Sage** — Research Manager  
-10. 🧑‍💼 **Ace** — Trader  
-11. ⚔️ **Blitz** — Aggressive Risk Agent  
-12. 🛡 **Guard** — Conservative Risk Agent  
+10. 🧑‍💼 **Ava** — Trader  
+11. ⚔️ **Blaze** — Aggressive Risk Agent  
+12. 🛡 **Gaia** — Conservative Risk Agent  
 13. ⚖️ **Balance** — Neutral Risk Agent  
 14. 👑 **NOVA** — Boss / Portfolio Manager  
-15. 📲 **Relay** — Telegram Manager  
-16. 🧪 **Ledger** — Journal / Testing Agent  
+15. 📲 **Rhea** — Telegram Manager  
+16. 🧪 **Lyra** — Journal / Testing Agent  
 
 Each agent has:
 
@@ -251,10 +251,10 @@ Cross-questioning is required when uncertainty exists.
 Example:
 
 ```text
-🐻 Vega -> 🔎 Hunter:
+🐻 Vega -> 🔎 Iris:
 Is the pin bar confirmed after close or still forming?
 
-🔎 Hunter -> 🐻 Vega:
+🔎 Iris -> 🐻 Vega:
 Still forming. We need candle close; current wick can disappear.
 ```
 
@@ -311,8 +311,8 @@ Verified:
 Sample test returned 3 real agent messages from:
 
 - 📊 Atlas
-- 🧭 Orion
-- 🕒 Chronos
+- 🧭 Aurora
+- 🕒 Selena
 
 They correctly identified missing data, avoided fake certainty, and asked other agents for confirmation details.
 
@@ -408,7 +408,7 @@ Then post each agent message into Telegram.
 
 ### Step 4 — Add journal/scoring
 
-Ledger should track:
+Lyra should track:
 
 - every candidate
 - every rejected setup

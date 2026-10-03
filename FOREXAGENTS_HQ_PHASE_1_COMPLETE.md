@@ -59,7 +59,7 @@ Agents = research departments
 n8n = workflow/control layer
 RPC = company brain/runtime
 Telegram = trading room
-Ledger = memory, review, replay, scoring
+Lyra = memory, review, replay, scoring
 RULES.yaml = constitution
 ```
 
@@ -153,10 +153,10 @@ These agents build facts and evidence.
 | Agent | Department |
 |---|---|
 | 📊 Atlas | Market Data |
-| 🧭 Orion | Weekly/Daily/4H Bias |
-| 🕒 Chronos | Session Timing |
-| 📐 Mason | Structure |
-| 🔎 Hunter | Pattern Detection |
+| 🧭 Aurora | Weekly/Daily/4H Bias |
+| 🕒 Selena | Session Timing |
+| 📐 Maya | Structure |
+| 🔎 Iris | Pattern Detection |
 | 📰 Echo | News Risk |
 
 ### Reasoning and Decision Team
@@ -168,9 +168,9 @@ These agents debate and stress-test verified evidence.
 | 🐂 Titan | Bull Researcher |
 | 🐻 Vega | Bear Researcher |
 | 🧠 Sage | Research Manager |
-| 🧑‍💼 Ace | Trader |
-| ⚔️ Blitz | Aggressive Risk |
-| 🛡 Guard | Conservative Risk |
+| 🧑‍💼 Ava | Trader |
+| ⚔️ Blaze | Aggressive Risk |
+| 🛡 Gaia | Conservative Risk |
 | ⚖️ Balance | Neutral Risk |
 | 👑 NOVA | Boss / Portfolio Manager |
 
@@ -178,8 +178,8 @@ These agents debate and stress-test verified evidence.
 
 | Agent | Department |
 |---|---|
-| 📲 Relay | Telegram Manager |
-| 🧪 Ledger | Journal / Testing / Replay |
+| 📲 Rhea | Telegram Manager |
+| 🧪 Lyra | Journal / Testing / Replay |
 
 ---
 
@@ -198,7 +198,7 @@ Important boundary:
 
 ```text
 Titan and Vega do not fetch candles.
-Titan and Vega debate Atlas/Orion/Chronos/Mason/Hunter/Echo evidence.
+Titan and Vega debate Atlas/Aurora/Selena/Maya/Iris/Echo evidence.
 ```
 
 This prevents agents from debating different realities.
@@ -226,7 +226,7 @@ Titan vs Vega Debate
 ↓
 Sage Arbitration
 ↓
-Ace Trade Plan
+Ava Trade Plan
 ↓
 Risk Board
 ↓
@@ -234,7 +234,7 @@ NOVA Final Decision
 ↓
 Ozzi Approval
 ↓
-Ledger / Review
+Lyra / Review
 ```
 
 If data is bad:

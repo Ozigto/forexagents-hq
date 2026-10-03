@@ -1,4 +1,4 @@
-"""Readable case summaries for Relay/Telegram commands."""
+"""Readable case summaries for Rhea/Telegram commands."""
 
 from __future__ import annotations
 

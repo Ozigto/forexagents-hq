@@ -1,7 +1,7 @@
 id: conservative_risk
 name: Conservative Risk Agent
 emoji: 🛡
-display_name: Guard
+display_name: Gaia
 job: Try to reject weak trades and protect account rules.
 tools:
   - trade_plan

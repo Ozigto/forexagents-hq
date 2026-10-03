@@ -36,17 +36,17 @@ AGENT_ORDER = {
 
 DISPLAY = {
     'market_data': ('📊', 'Atlas'),
-    'htf_bias': ('🧭', 'Orion'),
-    'session_timing': ('🕒', 'Chronos'),
-    'structure': ('📐', 'Mason'),
-    'pattern': ('🔎', 'Hunter'),
+    'htf_bias': ('🧭', 'Aurora'),
+    'session_timing': ('🕒', 'Selena'),
+    'structure': ('📐', 'Maya'),
+    'pattern': ('🔎', 'Iris'),
     'news': ('📰', 'Echo'),
     'bull': ('🐂', 'Titan'),
     'bear': ('🐻', 'Vega'),
     'research_manager': ('🧠', 'Sage'),
-    'trader': ('🧑‍💼', 'Ace'),
-    'aggressive_risk': ('⚔️', 'Blitz'),
-    'conservative_risk': ('🛡', 'Guard'),
+    'trader': ('🧑‍💼', 'Ava'),
+    'aggressive_risk': ('⚔️', 'Blaze'),
+    'conservative_risk': ('🛡', 'Gaia'),
     'neutral_risk': ('⚖️', 'Balance'),
     'nova_boss': ('👑', 'NOVA'),
 }
@@ -151,7 +151,7 @@ def write_case_transcript(case_dir: str | Path, transcript: list[dict[str, str]]
 
 
 def build_nova_decision_card(case: dict[str, Any], gate: dict[str, Any], status: str, transcript: list[dict[str, str]] | None = None) -> str:
-    """Create the clean decision card Relay can post to Telegram."""
+    """Create the clean decision card Rhea can post to Telegram."""
     reasons = gate.get('reasons') or []
     unknowns = gate.get('unknowns') or []
     vetoes = gate.get('vetoes') or []
@@ -230,7 +230,7 @@ PREVIOUS AGENT MESSAGES:
 TASK:
 {extra_task or f'Respond as {emoji} {display} only. Be concise, professional, and specific.'}
 If you need to question another agent, include a line like:
-"{emoji} {display} -> Hunter: question"
+"{emoji} {display} -> Iris: question"
 Do not pretend to have live data if it was not provided. Say what is missing.
 Output 3-8 short bullet lines max.
 """.strip()
@@ -275,7 +275,7 @@ Output 3-8 short bullet lines max.
 
 
 def extract_agent_questions(message: str) -> list[tuple[str, str]]:
-    """Extract simple agent-to-agent questions from lines like 'Atlas -> Hunter: ...'."""
+    """Extract simple agent-to-agent questions from lines like 'Atlas -> Iris: ...'."""
     questions: list[tuple[str, str]] = []
     for raw in message.splitlines():
         line = raw.strip().lstrip('-• ').strip()

@@ -86,7 +86,7 @@ Every case must record:
 
 Changing rules creates a new version. Old cases must not be silently re-judged under new rules.
 
-If a rule changes, Ledger must preserve which version produced the original decision.
+If a rule changes, Lyra must preserve which version produced the original decision.
 
 ---
 
@@ -173,8 +173,8 @@ ForexAgents should be proud to wait when evidence is weak, timing is bad, or the
                        │
           ┌────────────┴────────────┐
           │                         │
-      Risk Board                 Ace
- Blitz / Guard / Balance        Trader
+      Risk Board                 Ava
+ Blaze / Gaia / Balance        Trader
           │                         │
           └────────── Sage ─────────┘
                   Research Manager
@@ -183,15 +183,15 @@ ForexAgents should be proud to wait when evidence is weak, timing is bad, or the
                   Bull   Bear
                        │
     ┌──────────────────┼──────────────────┐
- Atlas  Orion  Chronos  Mason  Hunter  Echo
+ Atlas  Aurora  Selena  Maya  Iris  Echo
     └──────────────────┼──────────────────┘
                        │
               Evidence + Pattern Engine
                        │
              Validated Market Snapshot
 
-Relay = communications
-Ledger = records, evaluation, replay
+Rhea = communications
+Lyra = records, evaluation, replay
 n8n = scheduling and orchestration
 RPC = company brain/runtime
 Telegram = trading room
@@ -209,10 +209,10 @@ These agents build and validate the shared evidence snapshot.
 | Agent | Role |
 |---|---|
 | 📊 Atlas | Market Data Analyst |
-| 🧭 Orion | Weekly/Daily/4H Bias Analyst |
-| 🕒 Chronos | Session Timing Analyst |
-| 📐 Mason | Structure Analyst |
-| 🔎 Hunter | Pattern Analyst |
+| 🧭 Aurora | Weekly/Daily/4H Bias Analyst |
+| 🕒 Selena | Session Timing Analyst |
+| 📐 Maya | Structure Analyst |
+| 🔎 Iris | Pattern Analyst |
 | 📰 Echo | News Risk Analyst |
 
 ### Debate and Decision Team
@@ -224,9 +224,9 @@ These agents reason from the verified evidence. They must not fetch their own se
 | 🐂 Titan | Bull Researcher |
 | 🐻 Vega | Bear Researcher |
 | 🧠 Sage | Research Manager |
-| 🧑‍💼 Ace | Trader |
-| ⚔️ Blitz | Aggressive Risk Agent |
-| 🛡 Guard | Conservative Risk Agent |
+| 🧑‍💼 Ava | Trader |
+| ⚔️ Blaze | Aggressive Risk Agent |
+| 🛡 Gaia | Conservative Risk Agent |
 | ⚖️ Balance | Neutral Risk Agent |
 | 👑 NOVA | Boss / Portfolio Manager |
 
@@ -234,8 +234,8 @@ These agents reason from the verified evidence. They must not fetch their own se
 
 | Agent | Role |
 |---|---|
-| 📲 Relay | Telegram Manager |
-| 🧪 Ledger | Journal / Testing / Replay Agent |
+| 📲 Rhea | Telegram Manager |
+| 🧪 Lyra | Journal / Testing / Replay Agent |
 
 ---
 
@@ -250,7 +250,7 @@ Agents reason about those facts.
 
 Do not give every agent every tool.
 
-Titan and Vega must not independently download candles. They receive verified evidence from Atlas, Orion, Chronos, Mason, Hunter, and Echo. Otherwise the company could debate two different realities.
+Titan and Vega must not independently download candles. They receive verified evidence from Atlas, Aurora, Selena, Maya, Iris, and Echo. Otherwise the company could debate two different realities.
 
 ### Three skill layers
 
@@ -268,10 +268,10 @@ company rules
 SPECIALIST SKILLS
 ────────────────────
 Atlas   → market data
-Orion   → bias
-Chronos → sessions
-Mason   → structure
-Hunter  → patterns
+Aurora   → bias
+Selena → sessions
+Maya   → structure
+Iris  → patterns
 Echo    → news
 
         ↓
@@ -280,7 +280,7 @@ REASONING SKILLS
 ────────────────────
 Titan/Vega → challenge
 Sage       → arbitrate
-Ace        → construct plan
+Ava        → construct plan
 Risk Board → stress test
 NOVA       → final classification
 ```
@@ -321,10 +321,10 @@ news in        = 143 minutes
 
                 ↓
 
-Mason:
+Maya:
 "Structure break confirmed."
 
-Hunter:
+Iris:
 "Break/retest requirements satisfied."
 
 Vega:
@@ -363,13 +363,13 @@ Unsupported claims lose authority automatically.
 Example of bad output:
 
 ```text
-Mason: Structure is bullish.
+Maya: Structure is bullish.
 ```
 
 Example of professional output:
 
 ```text
-Mason:
+Maya:
 FACT: XAU/USD 4H candle closed above 2342.50 resistance at 2026-10-03 08:00 Athens.
 CALCULATION: Retest low is 2342.10, 0.40 below break level.
 INTERPRETATION: Structure break is confirmed but retest quality is still mixed.
@@ -481,7 +481,7 @@ The case file attaches:
 - analyst reports
 - Bull/Bear claims
 - Sage conclusion
-- Ace proposal
+- Ava proposal
 - risk debate
 - NOVA status
 - Ozzi decision
@@ -536,7 +536,7 @@ Market snapshot
 → Cross-questioning
 → Titan vs Vega debate
 → Sage arbitration
-→ Ace trade plan
+→ Ava trade plan
 → Risk Board stress test
 → NOVA decision
 ```
@@ -546,7 +546,7 @@ Rules:
 - An agent cannot agree without explaining why.
 - Bull and Bear must name the strongest argument against their own position.
 - Sage must identify unresolved disagreement instead of forcing consensus.
-- Risk agents must independently evaluate Ace's proposal.
+- Risk agents must independently evaluate Ava's proposal.
 - NOVA must reject if the debate is unclear.
 
 ---
@@ -594,7 +594,7 @@ The full internal debate should be available by command:
 /full CASE_ID
 ```
 
-Relay handles presentation only. Relay cannot influence trading conclusions.
+Rhea handles presentation only. Rhea cannot influence trading conclusions.
 
 Suggested commands:
 
@@ -637,9 +637,9 @@ No hype. No guaranteed profit language.
 
 ---
 
-## 17. Ledger and Review
+## 17. Lyra and Review
 
-Ledger tracks more than profit.
+Lyra tracks more than profit.
 
 Each case should eventually record:
 
@@ -658,7 +658,7 @@ Each case should eventually record:
 
 Separate decision quality from trade outcome.
 
-A good decision can lose. A bad decision can win. Ledger must learn the difference.
+A good decision can lose. A bad decision can win. Lyra must learn the difference.
 
 ---
 
