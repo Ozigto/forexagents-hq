@@ -150,6 +150,37 @@ def build_status_reply(rpc_ok: bool, n8n_note: str = 'local polling bridge') -> 
     ])
 
 
+def build_visible_agent_status(symbol: str, timeframe: str) -> str:
+    """Natural room-style opening message for a scan.
+
+    This is not fake analysis. It tells Ozzi the desk is opening the case
+    and which agents are about to challenge the setup.
+    """
+    return '\n\n'.join([
+        f'🏢 ForexAgents HQ company room — {symbol} {timeframe}',
+        '📊 Atlas: I am opening the case. First I need to know whether we have real candle evidence or only a chart note.',
+        '🔎 Iris: I will not call a setup valid unless it matches Ozzi’s two patterns: 4H EMA21 break/retest or 1H/4H pin-bar rejection.',
+        '🐻 Vega: Good. If the evidence is thin, I’m going to challenge it instead of letting the room pretend there is a trade.',
+        '👑 NOVA: Exactly. Talk like a desk, not like a checklist. If the setup is weak, we still explain why and protect Ozzi.',
+    ])[:3900]
+
+
+def build_wait_room_summary(rpc: dict[str, Any]) -> str:
+    gate = rpc.get('gate') or {}
+    reasons = gate.get('reasons') or []
+    unknowns = gate.get('unknowns') or []
+    reason = reasons[0] if reasons else 'The setup did not pass the first evidence gate.'
+    unknown = unknowns[0] if unknowns else 'Required candle/pattern evidence is missing.'
+    return '\n\n'.join([
+        f"🏢 ForexAgents HQ — {rpc.get('case_id', 'case open')}",
+        '📊 Atlas: I’m not seeing enough verified market evidence here. If this is only a short note, I cannot turn it into candles, EMA values, or structure levels.',
+        f'🔎 Iris: Pattern gate says WAIT. {reason}',
+        f'🐻 Vega: I agree with stopping early. The strongest objection is: {unknown}',
+        '🧠 Sage: Then we are not spending the full desk on a weak or unclear setup. That is discipline, not failure.',
+        f"👑 NOVA: WAIT. Evidence grade: {gate.get('evidence_grade', 'insufficient')}. Ozzi, give me a real setup note or structured candle evidence if you want the full team debate.",
+    ])[:3900]
+
+
 def rpc_health() -> bool:
     try:
         with urllib.request.urlopen('http://127.0.0.1:18765/health', timeout=5) as resp:
@@ -188,7 +219,9 @@ def format_scan_reply(rpc: dict[str, Any]) -> str:
         f"Status: {gate.get('status') or gate.get('decision') or 'UNKNOWN'}",
         f"Evidence: {gate.get('evidence_grade', 'unknown')}",
     ])
-    if text:
+    if not rpc.get('transcript') and (gate.get('status') == 'WAIT' or gate.get('decision') == 'WAIT'):
+        body = build_wait_room_summary(rpc)
+    elif text:
         body = text[:3200]
     else:
         reasons = gate.get('reasons') or []
@@ -231,7 +264,7 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
         if cmd['command'] == 'status':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_status_reply(rpc_health())})
         elif cmd['command'] == 'scan':
-            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': f"🔎 ForexAgents received scan: {cmd['symbol']} {cmd['timeframe']}\nWorking..."})
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:
                 rpc = call_rpc_scan(cmd['symbol'], cmd['timeframe'], cmd.get('args', ''))
                 telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': format_scan_reply(rpc)})

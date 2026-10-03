@@ -49,6 +49,37 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertIn('polling bridge', text)
         self.assertNotIn('token', text.lower())
 
+    def test_visible_agent_status_shows_company_room(self):
+        bridge = load_bridge()
+        text = bridge.build_visible_agent_status('XAU/USD', '4H')
+        self.assertIn('ForexAgents HQ company room', text)
+        self.assertIn('📊 Atlas:', text)
+        self.assertIn('🔎 Iris:', text)
+        self.assertIn('🐻 Vega:', text)
+        self.assertIn('👑 NOVA:', text)
+        self.assertIn('I am opening the case', text)
+        self.assertNotIn('checking...', text.lower())
+
+    def test_wait_visibility_summary_shows_agents_even_without_debate(self):
+        bridge = load_bridge()
+        rpc = {
+            'case_id': 'XAUUSD-20261003-001',
+            'gate': {
+                'status': 'WAIT',
+                'evidence_grade': 'insufficient',
+                'reasons': ['No plausible allowed pattern detected before LLM debate.'],
+                'unknowns': ['No deterministic 4H 21 EMA break/retest candidate found.'],
+            },
+            'transcript': [],
+        }
+        text = bridge.format_scan_reply(rpc)
+        self.assertIn('📊 Atlas:', text)
+        self.assertIn('🔎 Iris:', text)
+        self.assertIn('🐻 Vega:', text)
+        self.assertIn('👑 NOVA:', text)
+        self.assertIn('No plausible allowed pattern detected', text)
+        self.assertIn('not spending the full desk', text)
+
 
 if __name__ == '__main__':
     unittest.main()

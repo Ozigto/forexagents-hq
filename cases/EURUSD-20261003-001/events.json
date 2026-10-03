@@ -1,0 +1,10 @@
+[
+  {
+    "payload": {
+      "case_id": "EURUSD-20261003-001",
+      "status": "WAIT"
+    },
+    "recorded_at": "2026-10-03T22:08:50+03:00",
+    "type": "case_created"
+  }
+]

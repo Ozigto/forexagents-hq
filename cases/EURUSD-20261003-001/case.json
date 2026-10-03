@@ -1,0 +1,10 @@
+{
+  "case_dir": "/Volumes/AI-Brain/n8n-Automation/forexagents/cases/EURUSD-20261003-001",
+  "case_id": "EURUSD-20261003-001",
+  "created_at": "2026-10-03T22:08:50+03:00",
+  "rule_version": 1,
+  "sequence": 1,
+  "snapshot_id": null,
+  "status": "WAIT",
+  "symbol": "EUR/USD"
+}

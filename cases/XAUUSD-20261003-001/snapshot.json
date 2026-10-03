@@ -1,0 +1,13 @@
+{
+  "candles": [
+    {
+      "time": "2026-10-03T00:00:00+03:00"
+    }
+  ],
+  "completed_candle": {
+    "time": "2026-10-03T00:00:00+03:00"
+  },
+  "data_timestamp": "2026-10-03T08:05:00+03:00",
+  "symbol": "XAU/USD",
+  "timeframe": "4H"
+}

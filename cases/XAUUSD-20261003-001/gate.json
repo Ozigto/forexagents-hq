@@ -1,0 +1,15 @@
+{
+  "decision": "WAIT",
+  "evidence_grade": "insufficient",
+  "patterns": [],
+  "reasons": [
+    "Data quality failed before LLM debate."
+  ],
+  "status": "WAIT",
+  "symbol": "XAU/USD",
+  "timeframe": "4H",
+  "unknowns": [],
+  "vetoes": [
+    "stale_data"
+  ]
+}
