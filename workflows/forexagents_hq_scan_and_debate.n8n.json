@@ -29,7 +29,13 @@
       ],
       "disabled": true,
       "notesInFlow": true,
-      "notes": "Enable this after adding @ozzi_nova_bot Telegram credentials in n8n. Keep disabled until token/chat allowlist is ready."
+      "notes": "Enable this after adding @ozzi_nova_bot Telegram credentials in n8n. Keep disabled until token/chat allowlist is ready.",
+      "credentials": {
+        "telegramApi": {
+          "id": "pfv9jCMrgj3BZi0m",
+          "name": "Telegram account"
+        }
+      }
     },
     {
       "parameters": {
@@ -106,7 +112,13 @@
       ],
       "disabled": true,
       "notesInFlow": true,
-      "notes": "Enable after Telegram credentials and group chat id are confirmed. Disabled now to avoid sending to the wrong chat."
+      "notes": "Enable after Telegram credentials and group chat id are confirmed. Disabled now to avoid sending to the wrong chat.",
+      "credentials": {
+        "telegramApi": {
+          "id": "pfv9jCMrgj3BZi0m",
+          "name": "Telegram account"
+        }
+      }
     },
     {
       "parameters": {
