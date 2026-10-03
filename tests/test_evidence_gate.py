@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('rpc_server', ROOT / 'rpc_server.py')
@@ -49,6 +50,73 @@ class EvidenceGateTests(unittest.TestCase):
         })
         self.assertEqual(gate['decision'], 'DEBATE')
         self.assertIn('pinbar_rejection', gate['patterns'])
+
+    def test_snapshot_pinbar_candidate_passes_gate_without_text_claims(self):
+        gate = rpc_server.evidence_gate({
+            'symbol': 'XAU/USD',
+            'timeframe': '1H',
+            'now': '2026-10-03T02:00:00+00:00',
+            'chart_notes': '',
+            'evidence_snapshot': {
+                'symbol': 'XAU/USD',
+                'timeframe': '1H',
+                'source': 'biquote',
+                'data_timestamp': '2026-10-03T02:00:00+00:00',
+                'completed_candle': {'time': '2026-10-03T01:00:00+00:00'},
+                'candles': [{'time': '2026-10-03T01:00:00+00:00'}],
+                'calculations': [{'name': 'pinbar', 'is_pinbar': True, 'direction': 'bullish'}],
+            },
+        })
+        self.assertEqual(gate['decision'], 'DEBATE')
+        self.assertIn('pinbar_rejection', gate['patterns'])
+        self.assertEqual(gate['evidence_grade'], 'strong')
+
+    def test_debate_setup_fetches_live_snapshot_when_missing(self):
+        fake_snapshot = {
+            'symbol': 'XAU/USD',
+            'timeframe': '1H',
+            'source': 'biquote',
+            'data_timestamp': '2026-10-03T02:00:00+00:00',
+            'completed_candle': {'time': '2026-10-03T01:00:00+00:00'},
+            'candles': [{'time': '2026-10-03T01:00:00+00:00'}],
+            'calculations': [{'name': 'pinbar', 'is_pinbar': True, 'direction': 'bullish'}],
+        }
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(rpc_server, 'build_live_evidence_snapshot', return_value=fake_snapshot), \
+             patch.object(rpc_server, 'run_hermes_agent', return_value='agent response'):
+            result = rpc_server.debate_setup({
+                'symbol': 'XAU/USD',
+                'timeframe': '1H',
+                'input_type': 'live_scan',
+                'now': '2026-10-03T02:00:00+00:00',
+                'case_root': tmp,
+                'max_agents': 0,
+            })
+        self.assertEqual(result['gate']['decision'], 'DEBATE')
+        self.assertEqual(result['setup']['evidence_snapshot']['source'], 'biquote')
+
+    def test_live_snapshot_scan_fails_closed_when_feed_is_stale(self):
+        stale_snapshot = {
+            'symbol': 'XAU/USD',
+            'timeframe': '1H',
+            'source': 'biquote',
+            'data_timestamp': '2026-10-03T12:00:00+00:00',
+            'completed_candle': {'time': '2026-10-03T06:00:00+00:00'},
+            'candles': [{'time': '2026-10-03T06:00:00+00:00'}],
+            'calculations': [{'name': 'pinbar', 'is_pinbar': True, 'direction': 'bullish'}],
+        }
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(rpc_server, 'build_live_evidence_snapshot', return_value=stale_snapshot), \
+             patch.object(rpc_server, 'run_hermes_agent', return_value='SHOULD NOT RUN'):
+            result = rpc_server.debate_setup({
+                'symbol': 'XAU/USD',
+                'timeframe': '1H',
+                'input_type': 'live_scan',
+                'now': '2026-10-03T12:00:00+00:00',
+                'case_root': tmp,
+            })
+        self.assertEqual(result['status'], 'WAIT')
+        self.assertIn('stale_data', result['gate']['vetoes'])
 
     def test_stale_evidence_snapshot_waits_without_calling_agents(self):
         calls = []

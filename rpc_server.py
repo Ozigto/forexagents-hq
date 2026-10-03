@@ -117,6 +117,39 @@ def _load_case_store():
     return mod
 
 
+def build_live_evidence_snapshot(symbol: str, timeframe: str, now: str | None = None) -> dict[str, Any]:
+    """Fetch live read-only OHLC evidence for the desk.
+
+    Uses the no-key Biquote adapter first. This makes ForexAgents operational
+    while still fail-closing if the feed is stale or unavailable.
+    """
+    path = ROOT / 'skills' / 'market_data' / 'biquote.py'
+    spec = importlib.util.spec_from_file_location('biquote', path)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.build_live_snapshot(symbol, timeframe, now=now)
+
+
+def attach_live_snapshot_if_missing(setup: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(setup.get('evidence_snapshot'), dict):
+        return setup
+    if setup.get('input_type') in {'manual_snapshot', 'replay'}:
+        return setup
+    if not setup.get('use_live_data') and setup.get('input_type') not in {'telegram_polling_bridge', 'n8n', 'live_scan'}:
+        return setup
+    symbol = str(setup.get('symbol') or '').strip()
+    timeframe = str(setup.get('timeframe') or '').strip()
+    if not symbol or not timeframe:
+        return setup
+    try:
+        now = setup.get('now') or datetime.now().astimezone().isoformat(timespec='seconds')
+        snapshot = build_live_evidence_snapshot(symbol, timeframe, now)
+        return {**setup, 'now': now, 'evidence_snapshot': snapshot, 'market_data_source': snapshot.get('source', 'unknown')}
+    except Exception as exc:
+        return {**setup, 'market_data_error': str(exc)}
+
+
 def create_rpc_case(setup: dict[str, Any], gate: dict[str, Any]) -> dict[str, Any]:
     """Create persistent case files for every RPC debate/setup call."""
     store = _load_case_store()
@@ -343,6 +376,19 @@ def evidence_gate(setup: dict[str, Any]) -> dict[str, Any]:
                 'unknowns': quality.get('warnings', []),
                 'vetoes': quality.get('vetoes', []),
             }
+        for calc in snapshot.get('calculations') or []:
+            if calc.get('name') == 'pinbar' and calc.get('is_pinbar') is True and timeframe in {'1H', '4H'}:
+                direction = calc.get('direction', 'unknown')
+                return {
+                    'decision': 'DEBATE',
+                    'status': 'CANDIDATE_FOR_DEBATE',
+                    'symbol': symbol,
+                    'timeframe': timeframe or 'UNKNOWN',
+                    'patterns': ['pinbar_rejection'],
+                    'evidence_grade': 'strong',
+                    'reasons': [f'{timeframe} live snapshot contains a deterministic {direction} pin-bar candidate.'],
+                    'unknowns': [],
+                }
     patterns: list[str] = []
     reasons: list[str] = []
     unknowns: list[str] = []
@@ -399,6 +445,7 @@ def format_gate_wait(gate: dict[str, Any]) -> str:
 def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
     """Run a real, staged agent conversation over provided setup input."""
     started = time.time()
+    setup = attach_live_snapshot_if_missing(setup)
     gate = evidence_gate(setup)
     case = create_rpc_case(setup, gate)
     transcript: list[dict[str, str]] = []
@@ -426,6 +473,7 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
             'journal_id': journal_id,
             'journal_path': str(journal_path),
             'elapsed_seconds': round(time.time() - started, 2),
+            'setup': setup,
             'transcript': transcript,
             'telegram_text': telegram_text,
         }
@@ -476,6 +524,7 @@ def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
         'journal_id': journal_id,
         'journal_path': str(journal_path),
         'elapsed_seconds': round(time.time() - started, 2),
+        'setup': setup,
         'transcript': transcript,
         'telegram_text': format_for_telegram(transcript),
     }
