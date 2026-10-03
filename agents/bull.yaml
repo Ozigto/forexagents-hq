@@ -12,3 +12,12 @@ must_output:
   - weakness
 hard_limits:
   - Cannot ignore risk/news
+allowed_skills:
+  - evidence_synthesis
+  - bullish_thesis
+  - challenge_bearish_claims
+forbidden_skills:
+  - candle_retrieval
+  - ema_calculation
+  - news_fetching
+  - risk_math

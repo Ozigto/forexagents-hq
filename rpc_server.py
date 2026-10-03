@@ -191,10 +191,97 @@ def answer_cross_questions(setup: dict[str, Any], transcript: list[dict[str, str
     return answers
 
 
+def evidence_gate(setup: dict[str, Any]) -> dict[str, Any]:
+    """Deterministic pre-check before spending LLM calls.
+
+    This is intentionally conservative. It does not approve trades; it only decides
+    whether one of Ozzi's two allowed patterns is plausible enough for agent debate.
+    """
+    notes = ' '.join(str(setup.get(key, '')) for key in ('chart_notes', 'ozzi_notes', 'notes', 'text')).lower()
+    timeframe = str(setup.get('timeframe', '')).upper().replace('H1', '1H').replace('H4', '4H')
+    symbol = str(setup.get('symbol', 'UNKNOWN'))
+    patterns: list[str] = []
+    reasons: list[str] = []
+    unknowns: list[str] = []
+
+    has_ema = '21 ema' in notes or 'ema21' in notes or 'ema 21' in notes
+    has_break = any(word in notes for word in ('break', 'broke', 'broken'))
+    has_retest = any(word in notes for word in ('retest', 'pullback', 'pull back'))
+    has_confirm = any(word in notes for word in ('close', 'closed', 'holding', 'reaction', 'reject'))
+    if timeframe == '4H' and has_ema and has_break and has_retest:
+        patterns.append('4h_21ema_break_retest')
+        reasons.append('4H notes mention 21 EMA plus break and retest/pullback.')
+        if not has_confirm:
+            unknowns.append('closed-candle confirmation not proven')
+
+    has_pinbar = any(term in notes for term in ('pin bar', 'pinbar', 'long wick', 'lower wick', 'upper wick'))
+    has_rejection = any(term in notes for term in ('rejection', 'reject', 'wick'))
+    has_level = any(term in notes for term in ('support', 'resistance', 'zone', 'level', 'ema'))
+    if timeframe in {'1H', '4H'} and has_pinbar and has_rejection and has_level:
+        patterns.append('pinbar_rejection')
+        reasons.append(f'{timeframe} notes mention pin-bar/wick rejection at a level/zone.')
+
+    if not patterns:
+        return {
+            'decision': 'WAIT',
+            'status': 'WAIT',
+            'symbol': symbol,
+            'timeframe': timeframe or 'UNKNOWN',
+            'patterns': [],
+            'evidence_grade': 'insufficient',
+            'reasons': ['No plausible allowed pattern detected before LLM debate.'],
+            'unknowns': ['No deterministic 4H 21 EMA break/retest or 1H/4H pin-bar rejection candidate found.'],
+        }
+
+    has_structured_evidence = bool(setup.get('evidence_snapshot') or setup.get('completed_candles') or setup.get('candles'))
+    grade = 'mixed' if unknowns or not has_structured_evidence else 'strong'
+    return {
+        'decision': 'DEBATE',
+        'status': 'CANDIDATE_FOR_DEBATE',
+        'symbol': symbol,
+        'timeframe': timeframe or 'UNKNOWN',
+        'patterns': patterns,
+        'evidence_grade': grade,
+        'reasons': reasons,
+        'unknowns': unknowns,
+    }
+
+
+def format_gate_wait(gate: dict[str, Any]) -> str:
+    reasons = '\n'.join(f"- {reason}" for reason in gate.get('reasons', []))
+    unknowns = '\n'.join(f"- {item}" for item in gate.get('unknowns', []))
+    return f"""👑 NOVA DECISION\n\nStatus: WAIT\nPair: {gate.get('symbol', 'UNKNOWN')}\nTimeframe: {gate.get('timeframe', 'UNKNOWN')}\nEvidence Grade: {gate.get('evidence_grade', 'insufficient')}\n\nReason:\n{reasons}\n\nMissing / Unknown:\n{unknowns}\n\nOzzi Action: No trade. No agent debate spent until one of the two allowed patterns is plausible.""".strip()
+
+
 def debate_setup(setup: dict[str, Any]) -> dict[str, Any]:
     """Run a real, staged agent conversation over provided setup input."""
     started = time.time()
+    gate = evidence_gate(setup)
     transcript: list[dict[str, str]] = []
+    if gate['decision'] == 'WAIT' and not setup.get('force_debate'):
+        journal_id = f"run-{int(started)}"
+        journal_path = ROOT / 'journal' / f'{journal_id}.json'
+        telegram_text = format_gate_wait(gate)
+        journal_path.write_text(json.dumps({
+            'id': journal_id,
+            'setup': setup,
+            'gate': gate,
+            'status': 'WAIT',
+            'transcript': transcript,
+            'elapsed_seconds': round(time.time() - started, 2),
+        }, indent=2), encoding='utf-8')
+        return {
+            'ok': True,
+            'status': 'WAIT',
+            'gate': gate,
+            'journal_id': journal_id,
+            'journal_path': str(journal_path),
+            'elapsed_seconds': round(time.time() - started, 2),
+            'transcript': transcript,
+            'telegram_text': telegram_text,
+        }
+
+    setup = {**setup, 'evidence_gate': gate}
     asked_questions: set[tuple[str, str]] = set()
     # Allow smoke tests to run only part of the company, but default is the professional flow.
     max_agents = setup.get('max_agents')

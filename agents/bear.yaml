@@ -12,3 +12,13 @@ must_output:
   - weakness
 hard_limits:
   - Cannot ignore risk/news
+allowed_skills:
+  - evidence_synthesis
+  - bearish_thesis
+  - attack_weak_assumptions
+  - false_confirmation_detection
+forbidden_skills:
+  - candle_retrieval
+  - ema_calculation
+  - news_fetching
+  - risk_math

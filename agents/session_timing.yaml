@@ -13,3 +13,13 @@ must_output:
   - daily_candle_context
 hard_limits:
   - Must label outside-window setups lower priority
+allowed_skills:
+  - athens_timezone
+  - asian_london_new_york_sessions
+  - session_transitions
+  - watch_windows
+  - timing_quality
+forbidden_skills:
+  - pattern_approval
+  - candle_retrieval
+  - trade_execution

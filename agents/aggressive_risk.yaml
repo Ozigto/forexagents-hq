@@ -12,3 +12,11 @@ must_output:
   - objection
 hard_limits:
   - Cannot exceed $200 risk
+allowed_skills:
+  - upside_analysis
+  - continuation_potential
+  - aggressive_scenario_testing
+forbidden_skills:
+  - candle_retrieval
+  - news_fetching
+  - final_trade_approval

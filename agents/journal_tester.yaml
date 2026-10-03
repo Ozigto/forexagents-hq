@@ -11,3 +11,14 @@ must_output:
   - follow_up_check
 hard_limits:
   - Never lose rejected/missed setups
+allowed_skills:
+  - case_storage
+  - outcome_tracking
+  - mfe_mae
+  - r_results
+  - agent_scoring
+  - replay_backtesting
+forbidden_skills:
+  - rewrite_history
+  - final_trade_approval
+  - live_trade_execution

@@ -16,3 +16,13 @@ hard_limits:
   - No auto-trading
   - Ozzi final human decision
   - No weak setups
+allowed_skills:
+  - portfolio_context
+  - company_rules
+  - final_evidence_review
+  - hard_vetoes
+  - candidate_classification
+forbidden_skills:
+  - candle_retrieval
+  - manual_human_approval
+  - trade_execution

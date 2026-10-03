@@ -9,3 +9,13 @@ must_output:
   - telegram_messages
 hard_limits:
   - Must preserve agent labels
+allowed_skills:
+  - telegram_receive_send
+  - formatting
+  - commands
+  - threading_case_ids
+  - anti_spam
+forbidden_skills:
+  - trading_conclusion
+  - pattern_detection
+  - final_trade_approval

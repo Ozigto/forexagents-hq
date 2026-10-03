@@ -13,3 +13,11 @@ must_output:
   - approve_watch_reject
 hard_limits:
   - No final approval; Boss decides
+allowed_skills:
+  - neutral_risk_reward
+  - scenario_comparison
+  - conflicting_evidence_assessment
+forbidden_skills:
+  - candle_retrieval
+  - news_fetching
+  - final_trade_approval

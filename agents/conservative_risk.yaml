@@ -12,3 +12,12 @@ must_output:
   - risk_status
 hard_limits:
   - Must challenge every setup
+allowed_skills:
+  - capital_protection
+  - downside_analysis
+  - news_exposure
+  - stop_vulnerability
+  - veto_checks
+forbidden_skills:
+  - candle_retrieval
+  - final_trade_approval

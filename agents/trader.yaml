@@ -14,3 +14,12 @@ must_output:
   - confidence
 hard_limits:
   - No plan without approved setup
+allowed_skills:
+  - entry_stop_invalidation_target
+  - reward_risk
+  - one_lot_dollar_risk
+  - trade_plan_construction
+forbidden_skills:
+  - candle_retrieval
+  - news_fetching
+  - final_trade_approval

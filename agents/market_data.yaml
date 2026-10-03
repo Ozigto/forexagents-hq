@@ -20,3 +20,14 @@ must_output:
 hard_limits:
   - No entry calls
   - No bias calls
+allowed_skills:
+  - ohlc_candle_retrieval
+  - ema21_calculation
+  - spread_check
+  - atr_volatility
+  - price_normalization
+  - data_freshness_validation
+forbidden_skills:
+  - final_trade_approval
+  - bull_bear_debate
+  - telegram_presentation

@@ -18,3 +18,10 @@ must_output:
 hard_limits:
   - No extra patterns
   - No entry without confirmation
+allowed_skills:
+  - h4_ema21_break_retest_detector
+  - h1_h4_pinbar_rejection_detector
+forbidden_skills:
+  - trade_approval
+  - news_fetching
+  - candle_retrieval

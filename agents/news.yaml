@@ -11,3 +11,13 @@ must_output:
   - block_status
 hard_limits:
   - Must block red-folder danger
+allowed_skills:
+  - economic_calendar
+  - event_importance
+  - affected_currencies
+  - time_to_news
+  - post_news_danger_window
+forbidden_skills:
+  - pattern_detection
+  - trade_plan_construction
+  - final_trade_approval

@@ -16,3 +16,12 @@ must_output:
   - preferred_direction
 hard_limits:
   - Do not approve trades
+allowed_skills:
+  - w1_d1_h4_trend_classification
+  - multi_timeframe_alignment
+  - ema_context
+  - higher_timeframe_bias
+forbidden_skills:
+  - candle_retrieval
+  - trade_execution
+  - final_trade_approval

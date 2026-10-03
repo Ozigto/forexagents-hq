@@ -12,3 +12,12 @@ must_output:
   - next_step
 hard_limits:
   - Do not pass unclear setup
+allowed_skills:
+  - debate_arbitration
+  - contradiction_detection
+  - evidence_weighting
+  - unresolved_question_detection
+forbidden_skills:
+  - candle_retrieval
+  - news_fetching
+  - trade_execution

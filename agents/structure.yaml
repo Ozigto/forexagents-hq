@@ -14,3 +14,13 @@ must_output:
   - invalidation_zone
 hard_limits:
   - No random trend calls without levels
+allowed_skills:
+  - support_resistance
+  - swing_highs_lows
+  - hh_hl_lh_ll
+  - break_of_structure
+  - retest_zones
+forbidden_skills:
+  - candle_retrieval
+  - final_trade_approval
+  - news_fetching
