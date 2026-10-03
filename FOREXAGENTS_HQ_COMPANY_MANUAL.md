@@ -69,6 +69,25 @@ A+ candidates must be rare.
 9. Telegram must be readable; it is a trading room, not spam.
 10. Every real candidate must become a case file.
 
+
+---
+
+## 3A. Rule Versioning
+
+`RULES.yaml` is the company constitution.
+
+Every case must record:
+
+- `RULES.yaml` version
+- manual version
+- workflow version
+- prompt/agent version
+- deterministic skill version when available
+
+Changing rules creates a new version. Old cases must not be silently re-judged under new rules.
+
+If a rule changes, Ledger must preserve which version produced the original decision.
+
 ---
 
 ## 4. Trading Scope
@@ -115,6 +134,31 @@ Management may continue toward 23:00 / midnight depending on the trade.
 - A+ risk ceiling: $200.
 - Weekly target: $1,000–$1,500.
 - Weekly shots: 5–7 quality shots, not forced daily trades.
+
+
+### A+ candidate definition
+
+`A+ CANDIDATE` is rare. It requires all of the following:
+
+- approved pattern only: 4H 21 EMA break/retest or 1H/4H pin-bar rejection
+- evidence grade is strong or clearly improving from mixed to strong
+- no deterministic veto is active
+- completed candle evidence supports the setup
+- clear invalidation exists
+- 1-lot risk fits Ozzi's $150-$200 rule
+- entry is not late or chased
+- session timing is acceptable or explicitly justified
+- no dangerous news window
+- Titan/Vega disagreement is resolved or Sage clearly weights the evidence
+- NOVA agrees it is worth Ozzi's attention
+
+If any requirement is missing, output `WATCH`, `WAIT`, or `REJECTED`, not `A+ CANDIDATE`.
+
+### WAIT is success
+
+`WAIT` is not failure. `WAIT` means capital protected.
+
+ForexAgents should be proud to wait when evidence is weak, timing is bad, or the setup is not one of Ozzi's two patterns.
 
 ---
 
@@ -332,6 +376,19 @@ INTERPRETATION: Structure break is confirmed but retest quality is still mixed.
 UNKNOWN: Need next closed 4H candle to confirm continuation.
 ```
 
+
+### Screenshot evidence limit
+
+Screenshots can start analysis, but screenshots alone should not create final A+ approval.
+
+Screenshot-only evidence may produce:
+
+- `WATCH`
+- `WAIT`
+- `REJECTED`
+
+For `A+ CANDIDATE`, the company should eventually require structured candle data or a validated evidence snapshot containing prices, timestamps, candle closes, EMA values, invalidation, and risk calculations.
+
 ---
 
 ## 10. Data Quality Officer
@@ -429,6 +486,41 @@ The case file attaches:
 - NOVA status
 - Ozzi decision
 - subsequent market outcome
+
+
+### Case file format
+
+Every real opportunity should eventually be stored as a folder or structured record:
+
+```text
+cases/
+  EURUSD-20261003-001/
+    case.json
+    snapshot.json
+    evidence.json
+    gate.json
+    analyst_reports.json
+    debate.json
+    nova_decision.md
+    ozzi_decision.md
+    outcome.json
+    review.md
+```
+
+Minimum case fields:
+
+- case ID
+- symbol
+- pattern candidate
+- status
+- timestamps
+- rule version
+- evidence snapshot ID
+- NOVA status
+- Ozzi decision
+- final outcome when known
+
+Nothing important should live only in Telegram chat.
 
 ---
 
