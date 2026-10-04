@@ -67,9 +67,11 @@ class TelegramPollingBridgeTests(unittest.TestCase):
 
     def test_team_update_reply_uses_readiness_when_available(self):
         bridge = load_bridge()
-        readiness = '🧪 ForexAgents HQ readiness\n\nReady for live test: YES\nRPC brain: OK'
+        readiness = '🧪 ForexAgents HQ readiness\n\nReady for live test: YES\nRPC brain: OK\nMarket: CLOSED\nWatch window: WAITING'
         text = bridge.build_team_update_reply(readiness_text=readiness)
         self.assertIn('ForexAgents HQ team update', text)
+        self.assertIn('What to do now', text)
+        self.assertIn('No action now', text)
         self.assertIn('Ready for live test: YES', text)
         self.assertNotIn('token', text.lower())
 

@@ -209,8 +209,11 @@ def build_readiness_text() -> str:
 
 def build_team_update_reply(readiness_text: str | None = None) -> str:
     readiness_text = readiness_text or build_readiness_text()
+    next_action = build_next_action_reply(readiness_text=readiness_text)
     return '\n\n'.join([
         '👑 ForexAgents HQ team update',
+        next_action,
+        '━━━ FULL READINESS ━━━',
         readiness_text,
     ])[:3900]
 
