@@ -68,6 +68,15 @@ def now_athens() -> datetime:
     return datetime.now(ATHENS)
 
 
+def rpc_health() -> bool:
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:18765/health', timeout=5) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        return bool(data.get('ok'))
+    except Exception:
+        return False
+
+
 def in_watch_window(moment: datetime | None = None) -> bool:
     moment = moment or now_athens()
     if moment.tzinfo is None:
@@ -260,6 +269,67 @@ def _telegram_chat_and_token() -> tuple[Any, int, str]:
     return bridge, chat_id, token
 
 
+def next_watch_window(moment: datetime | None = None) -> str:
+    moment = moment or now_athens()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=ATHENS)
+    local = moment.astimezone(ATHENS)
+    # Check the next 10 days for the next open-market watch window.
+    from datetime import timedelta
+    windows = [(5, 0), (18, 0)]
+    for day_offset in range(0, 10):
+        day = local.date() + timedelta(days=day_offset)
+        for hour, minute in windows:
+            candidate = datetime(day.year, day.month, day.day, hour, minute, tzinfo=ATHENS)
+            if candidate <= local:
+                continue
+            if is_market_open(candidate):
+                return candidate.isoformat(timespec='minutes')
+    return 'unknown'
+
+
+def format_status_report(health: dict[str, Any], *, now: datetime | None = None, rpc_ok: bool | None = None) -> str:
+    moment = now or now_athens()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=ATHENS)
+    local = moment.astimezone(ATHENS)
+    rpc_ok = rpc_health() if rpc_ok is None else rpc_ok
+    market = 'open' if is_market_open(local) else 'closed'
+    window = 'inside watch window' if in_watch_window(local) and is_market_open(local) else f'next watch window: {next_watch_window(local)}'
+    lines = [
+        '👑 ForexAgents HQ is awake',
+        '',
+        f'RPC brain: {"OK" if rpc_ok else "OFFLINE"}',
+        f'MT5 candles: {"OK" if health.get("ok") else "WARNING"}',
+        f"Closed groups: {health.get('closed_groups', 0)}/16",
+        f"Closed rows: {health.get('closed_rows', 0)}",
+        f"Latest candle: {health.get('latest_candle_time', 'unknown')}",
+        f'Market: {market}',
+        f'Scanner: {window}',
+        'Telegram alerts: ON for WATCH / A+ / APPROVED only',
+        'Auto-trading: OFF',
+        '',
+        f'Athens time: {local.isoformat(timespec="minutes")}',
+    ]
+    return '\n'.join(lines)[:3900]
+
+
+def send_daily_status_report_if_needed(health: dict[str, Any], *, now: datetime | None = None, state: dict[str, Any] | None = None) -> int:
+    moment = now or now_athens()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=ATHENS)
+    local = moment.astimezone(ATHENS)
+    today = local.date().isoformat()
+    state = state if state is not None else load_state()
+    if state.get('last_status_report_date') == today:
+        return 0
+    bridge, chat_id, token = _telegram_chat_and_token()
+    bridge.telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': format_status_report(health, now=local)})
+    state['last_status_report_date'] = today
+    save_state(state)
+    return 1
+
+
 def format_health_alert(health: dict[str, Any]) -> str:
     lines = [
         '⚠️ ForexAgents HQ health warning',
@@ -374,6 +444,8 @@ def main() -> int:
     args = parser.parse_args()
     while True:
         result = scan_once(force=args.force)
+        if args.telegram and result.get('health'):
+            result['status_reports_sent'] = send_daily_status_report_if_needed(result['health'])
         if args.telegram and result.get('health') and not result['health'].get('ok'):
             result['health_alerts_sent'] = send_health_alert_if_needed(result['health'])
         if args.telegram and result.get('alerts'):

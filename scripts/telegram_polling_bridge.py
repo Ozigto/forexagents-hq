@@ -11,6 +11,7 @@ import base64
 import hashlib
 import json
 import os
+import ssl
 import sqlite3
 import subprocess
 import sys
@@ -111,7 +112,13 @@ def telegram_api(token: str, method: str, payload: dict[str, Any] | None = None)
         data = json.dumps(payload).encode('utf-8')
         headers['Content-Type'] = 'application/json'
     req = urllib.request.Request(url, data=data, headers=headers)
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    context = None
+    try:
+        import certifi  # type: ignore
+        context = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        context = None
+    with urllib.request.urlopen(req, timeout=60, context=context) as resp:
         return json.loads(resp.read().decode('utf-8'))
 
 

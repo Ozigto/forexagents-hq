@@ -190,6 +190,54 @@ class AutonomousScannerTests(unittest.TestCase):
         self.assertEqual(len(sent), 1)
         self.assertIn('health warning', sent[0][2]['text'])
 
+    def test_status_report_shows_company_awake(self):
+        scanner = load_scanner()
+        health = {
+            'ok': True,
+            'closed_groups': 16,
+            'closed_rows': 1920,
+            'latest_candle_time': '2026-10-02T22:00:00+00:00',
+        }
+        text = scanner.format_status_report(
+            health,
+            now=datetime.fromisoformat('2026-10-04T06:00:00+03:00'),
+            rpc_ok=True,
+        )
+        self.assertIn('ForexAgents HQ is awake', text)
+        self.assertIn('RPC brain: OK', text)
+        self.assertIn('MT5 candles: OK', text)
+        self.assertIn('Closed groups: 16/16', text)
+        self.assertIn('Auto-trading: OFF', text)
+
+    def test_send_daily_status_report_deduplicates_by_athens_date(self):
+        scanner = load_scanner()
+        sent = []
+
+        class FakeBridge:
+            @staticmethod
+            def load_local_env():
+                return {'FOREXAGENTS_TELEGRAM_GROUP_CHAT_ID': '-123'}
+
+            @staticmethod
+            def get_telegram_token():
+                return 'REDACTED_TEST_TOKEN'
+
+            @staticmethod
+            def telegram_api(token, method, payload):
+                sent.append((token, method, payload))
+                return {'ok': True}
+
+        state = {'sent_alert_keys': [], 'health_alert_keys': []}
+        health = {'ok': True, 'closed_groups': 16, 'closed_rows': 1920}
+        with patch.object(scanner, '_load_telegram_bridge_module', return_value=FakeBridge), \
+             patch.object(scanner, 'rpc_health', return_value=True), \
+             patch.object(scanner, 'save_state', lambda s: None):
+            self.assertEqual(scanner.send_daily_status_report_if_needed(health, now=datetime.fromisoformat('2026-10-04T06:00:00+03:00'), state=state), 1)
+            self.assertEqual(scanner.send_daily_status_report_if_needed(health, now=datetime.fromisoformat('2026-10-04T19:00:00+03:00'), state=state), 0)
+            self.assertEqual(scanner.send_daily_status_report_if_needed(health, now=datetime.fromisoformat('2026-10-05T06:00:00+03:00'), state=state), 1)
+        self.assertEqual(len(sent), 2)
+        self.assertIn('ForexAgents HQ is awake', sent[0][2]['text'])
+
 
 if __name__ == '__main__':
     unittest.main()
