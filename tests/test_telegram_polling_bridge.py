@@ -31,6 +31,18 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertEqual(cmd['command'], 'nova')
         self.assertEqual(cmd['args'], 'how is the company?')
 
+    def test_parse_voice_command(self):
+        bridge = load_bridge()
+        cmd = bridge.parse_command('/voice are we ready?')
+        self.assertEqual(cmd['command'], 'voice')
+        self.assertEqual(cmd['args'], 'are we ready?')
+
+    def test_voice_text_is_short_and_safe(self):
+        bridge = load_bridge()
+        text = bridge.voice_text_from_reply('👑 NOVA:\n' + ('ready ' * 2000))
+        self.assertLessEqual(len(text), 900)
+        self.assertNotIn('👑', text)
+
     def test_plain_group_text_routes_to_nova_chat(self):
         bridge = load_bridge()
         cmd = bridge.parse_command('nova are you here with us?')

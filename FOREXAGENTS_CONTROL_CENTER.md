@@ -63,11 +63,14 @@ Reliable group commands, even if Telegram privacy blocks normal text:
 /team
 /next
 /nova your question
+/voice your question
 ```
 
 Telegram architecture decision: use one bot only, `@ozzi_nova_bot`, as the ForexAgents + NOVA company door. Do not run a second Telegram poller/gateway against the same bot token at the same time, because two pollers can consume each other's updates.
 
 If Telegram BotFather privacy mode is ON, the bot may only receive slash commands in the group. To make normal group talking work, disable privacy for `@ozzi_nova_bot` in BotFather. The bridge is ready to route normal text to NOVA once Telegram delivers it.
+
+Voice replies: use `/voice your question`. NOVA answers by text and sends a local Kokoro voice audio reply.
 
 Automatic Telegram messages:
 

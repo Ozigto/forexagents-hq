@@ -327,6 +327,7 @@ now what?
 /team
 /next
 /nova your question
+/voice your question
 ```
 
 Note: in Telegram groups, normal human text can be hidden from bots if BotFather privacy mode is enabled. Slash commands such as `/status`, `/team`, and `/next` are the reliable group path.
@@ -334,6 +335,8 @@ Note: in Telegram groups, normal human text can be hidden from bots if BotFather
 Company Telegram decision: use one bot only, `@ozzi_nova_bot`, for both ForexAgents room operations and safe NOVA company conversation. Do not connect a second Telegram gateway to the same bot token while the ForexAgents bridge is polling.
 
 For the intended “one group, one NOVA, everyone talks together” behavior, BotFather privacy must be disabled so the bot receives normal group text. Slash commands remain the reliable fallback.
+
+Voice replies are available through `/voice your question` using local Kokoro TTS. Keep voice intentional to avoid group spam.
 
 Telegram should show:
 

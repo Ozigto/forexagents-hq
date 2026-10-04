@@ -15,9 +15,11 @@ import ssl
 import sqlite3
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,7 @@ N8N_DATA = N8N_ROOT / 'data' / '.n8n'
 STATE_FILE = ROOT / '.telegram_bridge_state.json'
 LOCAL_ENV = ROOT / '.env.telegram.local'
 RPC_URL = 'http://127.0.0.1:18765/debate/setup'
+KOKORO_TTS = Path('/Volumes/AI-Brain/hermes/tools/kokoro-tts.sh')
 
 NATURAL_STATUS_PHRASES = {
     'anything new',
@@ -176,6 +179,87 @@ def parse_command(text: str | None) -> dict[str, Any] | None:
             timeframe = tokens.pop(0).upper().replace('H1', '1H').replace('H4', '4H')
         result.update({'symbol': symbol, 'timeframe': timeframe, 'args': ' '.join(tokens)})
     return result
+
+
+def telegram_multipart(token: str, method: str, fields: dict[str, str], files: dict[str, Path]) -> dict[str, Any]:
+    boundary = '----NOVAFormBoundary' + uuid.uuid4().hex
+    chunks: list[bytes] = []
+    for name, value in fields.items():
+        chunks.extend([
+            f'--{boundary}\r\n'.encode(),
+            f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(),
+            str(value).encode('utf-8'),
+            b'\r\n',
+        ])
+    for name, path in files.items():
+        data = path.read_bytes()
+        chunks.extend([
+            f'--{boundary}\r\n'.encode(),
+            f'Content-Disposition: form-data; name="{name}"; filename="{path.name}"\r\n'.encode(),
+            b'Content-Type: audio/mpeg\r\n\r\n',
+            data,
+            b'\r\n',
+        ])
+    chunks.append(f'--{boundary}--\r\n'.encode())
+    body = b''.join(chunks)
+    req = urllib.request.Request(
+        f'https://api.telegram.org/bot{token}/{method}',
+        data=body,
+        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},
+    )
+    context = None
+    try:
+        import certifi  # type: ignore
+        context = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        context = None
+    with urllib.request.urlopen(req, timeout=120, context=context) as resp:
+        return json.loads(resp.read().decode('utf-8'))
+
+
+def voice_text_from_reply(reply: str, limit: int = 900) -> str:
+    replacements = {
+        '👑': '', '📊': '', '🔎': '', '🛡': '', '⚖️': '', '🏢': '', '🧪': '',
+        '━━━': '', '`': '', '*': '', '_': '',
+    }
+    text = reply
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    text = ' '.join(text.split())
+    if len(text) > limit:
+        text = text[: max(0, limit - 3)].rsplit(' ', 1)[0] + '...'
+    return text.strip()[:limit]
+
+
+def synthesize_voice_mp3(text: str) -> Path:
+    if not KOKORO_TTS.exists():
+        raise RuntimeError('Kokoro TTS script not found')
+    work = Path(tempfile.mkdtemp(prefix='forexagents-voice-', dir=str(ROOT / 'logs')))
+    input_path = work / 'voice.txt'
+    output_path = work / 'nova-voice.mp3'
+    input_path.write_text(text, encoding='utf-8')
+    proc = subprocess.run(
+        [str(KOKORO_TTS), str(input_path), str(output_path)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    if proc.returncode != 0 or not output_path.exists() or output_path.stat().st_size == 0:
+        raise RuntimeError('Voice generation failed')
+    return output_path
+
+
+def send_voice_reply(token: str, chat_id: int, reply_text: str) -> None:
+    voice_text = voice_text_from_reply(reply_text)
+    audio_path = synthesize_voice_mp3(voice_text)
+    telegram_multipart(
+        token,
+        'sendAudio',
+        {'chat_id': str(chat_id), 'caption': '👑 NOVA voice'},
+        {'audio': audio_path},
+    )
 
 
 def _safe_doc_excerpt(path: Path, limit: int = 5000) -> str:
@@ -459,6 +543,14 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
         elif cmd['command'] == 'nova':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': '👑 NOVA: I am reading that now...'})
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_nova_chat_reply(cmd.get('args', ''))})
+        elif cmd['command'] == 'voice':
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': '👑 NOVA: I am making a voice reply...'})
+            reply = build_nova_chat_reply(cmd.get('args', ''))
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': reply})
+            try:
+                send_voice_reply(token, int(chat_id), reply)
+            except Exception as exc:
+                telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': f'⚠️ Voice failed safely: {exc}'[:3900]})
         elif cmd['command'] == 'scan':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:
