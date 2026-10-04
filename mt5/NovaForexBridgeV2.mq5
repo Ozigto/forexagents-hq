@@ -9,11 +9,38 @@ string symbols[] = {"EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","NZDUSD","USDCA
 ENUM_TIMEFRAMES frames[] = {PERIOD_H1, PERIOD_H4};
 string frameNames[] = {"H1", "H4"};
 
+string ResolveSymbol(string base)
+{
+   if(SymbolSelect(base, true))
+      return base;
+   int total = SymbolsTotal(false);
+   for(int i=0; i<total; i++)
+   {
+      string candidate = SymbolName(i, false);
+      if(StringFind(candidate, base) == 0)
+      {
+         if(SymbolSelect(candidate, true))
+            return candidate;
+      }
+   }
+   total = SymbolsTotal(true);
+   for(int j=0; j<total; j++)
+   {
+      string selected = SymbolName(j, true);
+      if(StringFind(selected, base) == 0)
+      {
+         if(SymbolSelect(selected, true))
+            return selected;
+      }
+   }
+   return "";
+}
+
 int OnInit()
 {
    EventSetTimer(UpdateSeconds);
    for(int i=0; i<ArraySize(symbols); i++)
-      SymbolSelect(symbols[i], true);
+      ResolveSymbol(symbols[i]);
    Print("NovaForexBridgeV2 started READ-ONLY. Exports ticks and closed H1/H4 candles. No trading functions.");
    ExportMarketData();
    ExportCandles();
@@ -44,18 +71,19 @@ void ExportMarketData()
    for(int i=0; i<ArraySize(symbols); i++)
    {
       string symbol = symbols[i];
-      if(!SymbolSelect(symbol, true))
+      string actual = ResolveSymbol(symbol);
+      if(actual == "")
       {
          FileWrite(handle, symbol, "", "", "", "", TimeToString(server_time,TIME_DATE|TIME_SECONDS), "SYMBOL_NOT_AVAILABLE");
          continue;
       }
       MqlTick tick;
-      if(!SymbolInfoTick(symbol, tick) || tick.time <= 0)
+      if(!SymbolInfoTick(actual, tick) || tick.time <= 0)
       {
-         FileWrite(handle, symbol, "", "", "", "", TimeToString(server_time,TIME_DATE|TIME_SECONDS), "NO_TICK");
+         FileWrite(handle, actual, "", "", "", "", TimeToString(server_time,TIME_DATE|TIME_SECONDS), "NO_TICK");
          continue;
       }
-      double point = SymbolInfoDouble(symbol,SYMBOL_POINT);
+      double point = SymbolInfoDouble(actual,SYMBOL_POINT);
       double spread = 0;
       if(point > 0)
          spread = (tick.ask-tick.bid)/point;
@@ -65,7 +93,7 @@ void ExportMarketData()
       string status = "LIVE";
       if(age > 300)
          status = "STALE_OR_MARKET_CLOSED";
-      FileWrite(handle, symbol, DoubleToString(tick.bid,8), DoubleToString(tick.ask,8), DoubleToString(spread,1), TimeToString(tick.time,TIME_DATE|TIME_SECONDS), TimeToString(server_time,TIME_DATE|TIME_SECONDS), status);
+      FileWrite(handle, actual, DoubleToString(tick.bid,8), DoubleToString(tick.ask,8), DoubleToString(spread,1), TimeToString(tick.time,TIME_DATE|TIME_SECONDS), TimeToString(server_time,TIME_DATE|TIME_SECONDS), status);
    }
    FileClose(handle);
 }
@@ -83,13 +111,14 @@ void ExportCandles()
    for(int s=0; s<ArraySize(symbols); s++)
    {
       string symbol = symbols[s];
-      if(!SymbolSelect(symbol, true))
+      string actual = ResolveSymbol(symbol);
+      if(actual == "")
          continue;
       for(int f=0; f<ArraySize(frames); f++)
       {
          MqlRates rates[];
          ArraySetAsSeries(rates, true);
-         int copied = CopyRates(symbol, frames[f], 0, CandleCount + 1, rates);
+         int copied = CopyRates(actual, frames[f], 0, CandleCount + 1, rates);
          if(copied <= 1)
             continue;
          // rates[0] is the forming candle. Export it as not closed for visibility, then closed history.
@@ -98,7 +127,7 @@ void ExportCandles()
             bool is_closed = (i != 0);
             FileWrite(
                handle,
-               symbol,
+               actual,
                frameNames[f],
                TimeToString(rates[i].time,TIME_DATE|TIME_SECONDS),
                DoubleToString(rates[i].open,8),

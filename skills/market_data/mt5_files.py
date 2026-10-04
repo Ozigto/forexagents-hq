@@ -48,6 +48,11 @@ def _load_module(name: str, rel: str):
 def normalize_symbol(symbol: str) -> str:
     raw = symbol.strip().upper().replace('/', '')
     if raw not in SYMBOL_MAP:
+        for base in sorted(SYMBOL_MAP, key=len, reverse=True):
+            if raw.startswith(base):
+                raw = base
+                break
+    if raw not in SYMBOL_MAP:
         raise ValueError(f'unsupported MT5 symbol: {symbol}')
     return SYMBOL_MAP[raw]
 

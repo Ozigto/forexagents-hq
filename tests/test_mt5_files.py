@@ -17,7 +17,7 @@ def load(name, rel):
 class MT5FilesTests(unittest.TestCase):
     def test_parse_mt5_candles_csv_groups_closed_candles(self):
         mt5 = load('mt5_files', 'skills/market_data/mt5_files.py')
-        csv_text = '''symbol,timeframe,time,open,high,low,close,tick_volume,is_closed,server_time\nXAUUSD,H1,2026.10.03 09:00:00,100,110,95,108,123,true,2026.10.03 10:05:00\nXAUUSD,H1,2026.10.03 10:00:00,108,111,107,110,88,false,2026.10.03 10:05:00\nEURUSD,H4,2026.10.03 08:00:00,1.1,1.2,1.0,1.15,99,true,2026.10.03 12:05:00\n'''
+        csv_text = '''symbol,timeframe,time,open,high,low,close,tick_volume,is_closed,server_time\nXAUUSD.,H1,2026.10.03 09:00:00,100,110,95,108,123,true,2026.10.03 10:05:00\nXAUUSD.,H1,2026.10.03 10:00:00,108,111,107,110,88,false,2026.10.03 10:05:00\nEURUSD.,H4,2026.10.03 08:00:00,1.1,1.2,1.0,1.15,99,true,2026.10.03 12:05:00\n'''
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'nova_forex_candles.csv'
             path.write_text(csv_text, encoding='utf-8')
