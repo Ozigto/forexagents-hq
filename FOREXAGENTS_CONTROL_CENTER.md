@@ -55,6 +55,14 @@ The bot replies with the team/readiness report.
 
 For `what should I do now?` / `next?`, the bot gives one simple next action instead of a full technical report.
 
+Reliable group commands, even if Telegram privacy blocks normal text:
+
+```text
+/status
+/team
+/next
+```
+
 Automatic Telegram messages:
 
 - Daily company-awake status report.

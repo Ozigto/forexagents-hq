@@ -322,7 +322,12 @@ what should I do now?
 what do I do now?
 next?
 now what?
+/status
+/team
+/next
 ```
+
+Note: in Telegram groups, normal human text can be hidden from bots if BotFather privacy mode is enabled. Slash commands such as `/status`, `/team`, and `/next` are the reliable group path.
 
 Telegram should show:
 

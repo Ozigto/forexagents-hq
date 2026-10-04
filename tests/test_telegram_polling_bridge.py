@@ -20,6 +20,11 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertEqual(cmd['command'], 'status')
         self.assertEqual(cmd['args'], '')
 
+    def test_parse_reliable_group_slash_aliases(self):
+        bridge = load_bridge()
+        self.assertEqual(bridge.parse_command('/next')['command'], 'next_action')
+        self.assertEqual(bridge.parse_command('/team')['command'], 'status')
+
     def test_parse_natural_team_status_phrases(self):
         bridge = load_bridge()
         for phrase in ('anything new?', 'how is the team going?', 'team?', 'any news', 'status'):

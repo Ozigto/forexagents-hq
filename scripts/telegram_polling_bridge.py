@@ -159,6 +159,10 @@ def parse_command(text: str | None) -> dict[str, Any] | None:
     raw = parts[0][1:]
     command = raw.split('@', 1)[0].lower()
     args = parts[1].strip() if len(parts) > 1 else ''
+    if command in {'next', 'whatnext'}:
+        command = 'next_action'
+    elif command in {'team', 'news', 'anythingnew'}:
+        command = 'status'
     result: dict[str, Any] = {'command': command, 'args': args}
     if command == 'scan':
         tokens = args.split()
