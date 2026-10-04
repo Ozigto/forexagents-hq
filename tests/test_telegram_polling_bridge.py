@@ -31,6 +31,13 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertEqual(cmd['command'], 'nova')
         self.assertEqual(cmd['args'], 'how is the company?')
 
+    def test_plain_group_text_routes_to_nova_chat(self):
+        bridge = load_bridge()
+        cmd = bridge.parse_command('nova are you here with us?')
+        self.assertEqual(cmd['command'], 'nova')
+        self.assertEqual(cmd['args'], 'nova are you here with us?')
+        self.assertTrue(cmd['natural'])
+
     def test_build_nova_prompt_is_company_scoped(self):
         bridge = load_bridge()
         prompt = bridge.build_nova_prompt('hello', readiness_text='Ready for live test: YES')

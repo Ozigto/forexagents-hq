@@ -154,7 +154,7 @@ def parse_command(text: str | None) -> dict[str, Any] | None:
     if cleaned in NATURAL_STATUS_PHRASES:
         return {'command': 'status', 'args': '', 'natural': True}
     if not text.startswith('/'):
-        return None
+        return {'command': 'nova', 'args': text.strip(), 'natural': True}
     parts = text.strip().split(maxsplit=1)
     raw = parts[0][1:]
     command = raw.split('@', 1)[0].lower()

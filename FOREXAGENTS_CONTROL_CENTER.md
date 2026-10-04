@@ -43,6 +43,7 @@ Ozzi does not need to remember technical commands.
 In the Telegram group he can type natural messages:
 
 ```text
+NOVA are you here?
 anything new?
 how is the team going?
 team?
@@ -65,6 +66,8 @@ Reliable group commands, even if Telegram privacy blocks normal text:
 ```
 
 Telegram architecture decision: use one bot only, `@ozzi_nova_bot`, as the ForexAgents + NOVA company door. Do not run a second Telegram poller/gateway against the same bot token at the same time, because two pollers can consume each other's updates.
+
+If Telegram BotFather privacy mode is ON, the bot may only receive slash commands in the group. To make normal group talking work, disable privacy for `@ozzi_nova_bot` in BotFather. The bridge is ready to route normal text to NOVA once Telegram delivers it.
 
 Automatic Telegram messages:
 
