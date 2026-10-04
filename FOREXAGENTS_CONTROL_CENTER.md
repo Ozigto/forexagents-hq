@@ -2,6 +2,12 @@
 
 This is the single source of truth for recovering, checking, and operating ForexAgents HQ.
 
+For the whole company identity, departments, agent roles, and trading-desk discipline, read:
+
+```text
+FOREXAGENTS_COMPANY_BIBLE.md
+```
+
 If chat memory/context breaks, start here first.
 
 ## 1. Mission
@@ -131,6 +137,7 @@ https://github.com/Ozigto/forexagents-hq
 
 Core files:
 
+- `FOREXAGENTS_COMPANY_BIBLE.md` — whole company master record: mission, agents, departments, rules, and desk behavior.
 - `FOREXAGENTS_CONTROL_CENTER.md` — this file.
 - `scripts/autonomous_scanner.py` — autonomous scanner, health/status/readiness/Telegram alerts.
 - `scripts/telegram_polling_bridge.py` — Telegram bridge, `/status`, `/scan`, natural phrases.

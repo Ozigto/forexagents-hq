@@ -4,6 +4,8 @@ NOVA-led forex agent company for Ozzi.
 
 Start here if anything is forgotten or broken:
 
+➡️ **[`FOREXAGENTS_COMPANY_BIBLE.md`](FOREXAGENTS_COMPANY_BIBLE.md)** — whole company identity, roles, rules, departments, and operating discipline.
+
 ➡️ **[`FOREXAGENTS_CONTROL_CENTER.md`](FOREXAGENTS_CONTROL_CENTER.md)**
 
 That file is the single source of truth for:
@@ -45,6 +47,7 @@ team?
 
 ## Key files
 
+- `FOREXAGENTS_COMPANY_BIBLE.md` — whole company master record.
 - `FOREXAGENTS_CONTROL_CENTER.md` — main recovery/control file.
 - `scripts/autonomous_scanner.py` — scanner, health, status, readiness, Telegram alerts.
 - `scripts/telegram_polling_bridge.py` — Telegram commands and natural phrases.
