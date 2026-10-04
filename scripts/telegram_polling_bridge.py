@@ -32,6 +32,19 @@ STATE_FILE = ROOT / '.telegram_bridge_state.json'
 LOCAL_ENV = ROOT / '.env.telegram.local'
 RPC_URL = 'http://127.0.0.1:18765/debate/setup'
 
+NATURAL_STATUS_PHRASES = {
+    'anything new',
+    'any news',
+    'whats new',
+    "what's new",
+    'how is the team going',
+    'how the team going',
+    'how is team going',
+    'team status',
+    'team',
+    'status',
+}
+
 
 def load_local_env(path: Path = LOCAL_ENV) -> dict[str, str]:
     data: dict[str, str] = {}
@@ -123,7 +136,12 @@ def telegram_api(token: str, method: str, payload: dict[str, Any] | None = None)
 
 
 def parse_command(text: str | None) -> dict[str, Any] | None:
-    if not text or not text.startswith('/'):
+    if not text:
+        return None
+    cleaned = ' '.join(text.strip().lower().replace('?', '').split())
+    if cleaned in NATURAL_STATUS_PHRASES:
+        return {'command': 'status', 'args': '', 'natural': True}
+    if not text.startswith('/'):
         return None
     parts = text.strip().split(maxsplit=1)
     raw = parts[0][1:]
@@ -159,6 +177,30 @@ def build_status_reply(rpc_ok: bool, n8n_note: str = 'local polling bridge') -> 
         'n8n send path: not enabled for auto-posting yet',
         'Auto-trading: disabled',
     ])
+
+
+def build_readiness_text() -> str:
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / 'scripts' / 'autonomous_scanner.py'), '--readiness'],
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    text = (proc.stdout or '').strip()
+    if not text:
+        return build_status_reply(rpc_health())
+    return text[:3600]
+
+
+def build_team_update_reply(readiness_text: str | None = None) -> str:
+    readiness_text = readiness_text or build_readiness_text()
+    return '\n\n'.join([
+        '👑 ForexAgents HQ team update',
+        readiness_text,
+    ])[:3900]
 
 
 def build_visible_agent_status(symbol: str, timeframe: str) -> str:
@@ -288,7 +330,7 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
         if not cmd:
             continue
         if cmd['command'] == 'status':
-            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_status_reply(rpc_health())})
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_team_update_reply()})
         elif cmd['command'] == 'scan':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:

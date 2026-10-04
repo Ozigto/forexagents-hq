@@ -20,6 +20,14 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertEqual(cmd['command'], 'status')
         self.assertEqual(cmd['args'], '')
 
+    def test_parse_natural_team_status_phrases(self):
+        bridge = load_bridge()
+        for phrase in ('anything new?', 'how is the team going?', 'team?', 'any news', 'status'):
+            with self.subTest(phrase=phrase):
+                cmd = bridge.parse_command(phrase)
+                self.assertIsNotNone(cmd)
+                self.assertEqual(cmd['command'], 'status')
+
     def test_parse_scan_defaults_symbol_and_timeframe(self):
         bridge = load_bridge()
         cmd = bridge.parse_command('/scan XAU/USD 4H test')
@@ -47,6 +55,14 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertIn('ForexAgents HQ status', text)
         self.assertIn('RPC brain: online', text)
         self.assertIn('polling bridge', text)
+        self.assertNotIn('token', text.lower())
+
+    def test_team_update_reply_uses_readiness_when_available(self):
+        bridge = load_bridge()
+        readiness = '🧪 ForexAgents HQ readiness\n\nReady for live test: YES\nRPC brain: OK'
+        text = bridge.build_team_update_reply(readiness_text=readiness)
+        self.assertIn('ForexAgents HQ team update', text)
+        self.assertIn('Ready for live test: YES', text)
         self.assertNotIn('token', text.lower())
 
     def test_visible_agent_status_shows_company_room(self):
