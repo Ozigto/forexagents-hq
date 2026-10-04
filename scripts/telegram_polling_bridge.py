@@ -45,6 +45,16 @@ NATURAL_STATUS_PHRASES = {
     'status',
 }
 
+NATURAL_NEXT_ACTION_PHRASES = {
+    'what should i do now',
+    'what do i do now',
+    'what now',
+    'now what',
+    'next',
+    'next step',
+    'what next',
+}
+
 
 def load_local_env(path: Path = LOCAL_ENV) -> dict[str, str]:
     data: dict[str, str] = {}
@@ -139,6 +149,8 @@ def parse_command(text: str | None) -> dict[str, Any] | None:
     if not text:
         return None
     cleaned = ' '.join(text.strip().lower().replace('?', '').split())
+    if cleaned in NATURAL_NEXT_ACTION_PHRASES:
+        return {'command': 'next_action', 'args': '', 'natural': True}
     if cleaned in NATURAL_STATUS_PHRASES:
         return {'command': 'status', 'args': '', 'natural': True}
     if not text.startswith('/'):
@@ -201,6 +213,49 @@ def build_team_update_reply(readiness_text: str | None = None) -> str:
         '👑 ForexAgents HQ team update',
         readiness_text,
     ])[:3900]
+
+
+def _readiness_line(readiness_text: str, prefix: str) -> str | None:
+    for line in readiness_text.splitlines():
+        if line.startswith(prefix):
+            return line
+    return None
+
+
+def build_next_action_reply(readiness_text: str | None = None) -> str:
+    readiness_text = readiness_text or build_readiness_text()
+    ready = _readiness_line(readiness_text, 'Ready for live test:') or 'Ready for live test: UNKNOWN'
+    market = _readiness_line(readiness_text, 'Market:') or 'Market: UNKNOWN'
+    window = _readiness_line(readiness_text, 'Watch window:') or 'Watch window: UNKNOWN'
+    next_window = _readiness_line(readiness_text, 'Next watch window:')
+
+    ready_yes = 'YES' in ready.upper()
+    market_open = 'OPEN' in market.upper()
+    watch_active = 'ACTIVE' in window.upper()
+
+    if ready_yes and market_open and watch_active:
+        action = 'Company is watching now. No manual chart watching needed. I will alert only if a real setup appears.'
+    elif ready_yes:
+        action = 'No action now. Keep Mac awake, external drive mounted, MT5 open, and internet connected.'
+    else:
+        action = 'Company is not fully ready. Check the blocked item in the readiness report before trusting alerts.'
+
+    lines = [
+        '👑 ForexAgents HQ — What to do now',
+        '',
+        f'Action: {action}',
+        '',
+        ready,
+        market,
+        window,
+    ]
+    if next_window:
+        lines.append(next_window)
+    lines.extend([
+        '',
+        'Auto-trading: OFF. Ozzi has final decision.',
+    ])
+    return '\n'.join(lines)[:3900]
 
 
 def build_visible_agent_status(symbol: str, timeframe: str) -> str:
@@ -331,6 +386,8 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
             continue
         if cmd['command'] == 'status':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_team_update_reply()})
+        elif cmd['command'] == 'next_action':
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_next_action_reply()})
         elif cmd['command'] == 'scan':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:

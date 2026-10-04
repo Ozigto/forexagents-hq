@@ -28,6 +28,14 @@ class TelegramPollingBridgeTests(unittest.TestCase):
                 self.assertIsNotNone(cmd)
                 self.assertEqual(cmd['command'], 'status')
 
+    def test_parse_natural_next_action_phrases(self):
+        bridge = load_bridge()
+        for phrase in ('what should i do now?', 'what do i do now', 'next?', 'now what'):
+            with self.subTest(phrase=phrase):
+                cmd = bridge.parse_command(phrase)
+                self.assertIsNotNone(cmd)
+                self.assertEqual(cmd['command'], 'next_action')
+
     def test_parse_scan_defaults_symbol_and_timeframe(self):
         bridge = load_bridge()
         cmd = bridge.parse_command('/scan XAU/USD 4H test')
@@ -63,6 +71,15 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         text = bridge.build_team_update_reply(readiness_text=readiness)
         self.assertIn('ForexAgents HQ team update', text)
         self.assertIn('Ready for live test: YES', text)
+        self.assertNotIn('token', text.lower())
+
+    def test_next_action_reply_is_simple_and_safe(self):
+        bridge = load_bridge()
+        readiness = '🧪 ForexAgents HQ readiness\n\nReady for live test: YES\nMarket: CLOSED\nNext watch window: 2026-10-05T05:00+03:00'
+        text = bridge.build_next_action_reply(readiness_text=readiness)
+        self.assertIn('What to do now', text)
+        self.assertIn('No action now', text)
+        self.assertIn('Next watch window: 2026-10-05T05:00+03:00', text)
         self.assertNotIn('token', text.lower())
 
     def test_visible_agent_status_shows_company_room(self):

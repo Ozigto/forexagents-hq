@@ -47,9 +47,13 @@ anything new?
 how is the team going?
 team?
 status
+what should I do now?
+next?
 ```
 
 The bot replies with the team/readiness report.
+
+For `what should I do now?` / `next?`, the bot gives one simple next action instead of a full technical report.
 
 Automatic Telegram messages:
 

@@ -318,11 +318,16 @@ how is the team going?
 team status
 team?
 status
+what should I do now?
+what do I do now?
+next?
+now what?
 ```
 
 Telegram should show:
 
 - company awake/readiness status;
+- one simple next action when Ozzi asks what to do now;
 - health warnings;
 - visible desk opening for manual scan;
 - selected meaningful disagreements;
