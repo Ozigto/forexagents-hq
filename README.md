@@ -1,33 +1,56 @@
 # ForexAgents HQ
 
-NOVA-led forex agent company for Ozzi, implemented in n8n-first style.
+NOVA-led forex agent company for Ozzi.
+
+Start here if anything is forgotten or broken:
+
+➡️ **[`FOREXAGENTS_CONTROL_CENTER.md`](FOREXAGENTS_CONTROL_CENTER.md)**
+
+That file is the single source of truth for:
+
+- What is built.
+- How the system works.
+- What commands recover it.
+- What services should be running.
+- What must never be pushed.
+- What remains unfinished.
 
 ## Mission
 
-Find one A+ forex entry per week, maybe a second chance if the first loses, using only Ozzi's rules:
+Find high-quality forex setups using only Ozzi's rules:
 
 1. 4H 21 EMA break + retest.
 2. 1H / 4H pin bar rejection at meaningful levels.
 
 NOVA is the Boss / Portfolio Manager. Ozzi is the final human decision maker.
 
-## Current build status
+V1 is **research/signals only** and does **not** auto-trade.
 
-This folder contains the company blueprint and n8n workflow skeleton. It does not auto-trade.
-Next step is connecting Telegram bot/group credentials and choosing the candle/news data source.
+## Current live path
 
-## Files
+```text
+MT5 local candles
+→ autonomous scanner
+→ RPC evidence gate / debate
+→ Telegram status, health, and setup alerts
+```
 
-- `FOREXAGENTS_COMPANY_SPEC.md` — full design.
+Telegram supports natural status messages like:
+
+```text
+anything new?
+how is the team going?
+team?
+```
+
+## Key files
+
+- `FOREXAGENTS_CONTROL_CENTER.md` — main recovery/control file.
+- `scripts/autonomous_scanner.py` — scanner, health, status, readiness, Telegram alerts.
+- `scripts/telegram_polling_bridge.py` — Telegram commands and natural phrases.
+- `rpc_server.py` — evidence gate and agent decision endpoint.
+- `mt5/NovaForexBridgeV2.mq5` — read-only MT5 exporter.
+- `MT5_AUTONOMOUS_SETUP.md` — MT5 setup guide.
 - `RULES.yaml` — Ozzi's trading rules in machine-readable form.
 - `AGENT_ROSTER.md` — professional team roster.
-- `FLOW.yaml` — TradingAgents-inspired workflow graph.
-- `agents/*.yaml` — each agent's job, tools, inputs, outputs, and hard limits.
-- `prompts/*.md` — prompts for n8n AI nodes.
-- `templates/telegram_messages.md` — group message formats.
-- `workflows/forexagents_hq_scan_and_debate.n8n.json` — n8n import skeleton.
-
-
-## Telegram bot decision
-
-Use existing bot: `@ozzi_nova_bot`. The agents appear as named personas in one group, not separate bots.
+- `FOREXAGENTS_HQ_OPERATING_PLAYBOOK.md` — operating playbook.
