@@ -23,3 +23,5 @@ journal/tmp/
 cases/
 
 .autonomous_scanner_state.json
+
+logs/
