@@ -25,6 +25,20 @@ class TelegramPollingBridgeTests(unittest.TestCase):
         self.assertEqual(bridge.parse_command('/next')['command'], 'next_action')
         self.assertEqual(bridge.parse_command('/team')['command'], 'status')
 
+    def test_parse_nova_chat_command(self):
+        bridge = load_bridge()
+        cmd = bridge.parse_command('/nova how is the company?')
+        self.assertEqual(cmd['command'], 'nova')
+        self.assertEqual(cmd['args'], 'how is the company?')
+
+    def test_build_nova_prompt_is_company_scoped(self):
+        bridge = load_bridge()
+        prompt = bridge.build_nova_prompt('hello', readiness_text='Ready for live test: YES')
+        self.assertIn('ForexAgents HQ', prompt)
+        self.assertIn('Ready for live test: YES', prompt)
+        self.assertIn('No auto-trading', prompt)
+        self.assertIn('hello', prompt)
+
     def test_parse_natural_team_status_phrases(self):
         bridge = load_bridge()
         for phrase in ('anything new?', 'how is the team going?', 'team?', 'any news', 'status'):

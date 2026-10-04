@@ -61,7 +61,10 @@ Reliable group commands, even if Telegram privacy blocks normal text:
 /status
 /team
 /next
+/nova your question
 ```
+
+Telegram architecture decision: use one bot only, `@ozzi_nova_bot`, as the ForexAgents + NOVA company door. Do not run a second Telegram poller/gateway against the same bot token at the same time, because two pollers can consume each other's updates.
 
 Automatic Telegram messages:
 

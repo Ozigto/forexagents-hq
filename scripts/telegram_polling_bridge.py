@@ -178,6 +178,67 @@ def parse_command(text: str | None) -> dict[str, Any] | None:
     return result
 
 
+def _safe_doc_excerpt(path: Path, limit: int = 5000) -> str:
+    try:
+        text = path.read_text(encoding='utf-8', errors='ignore')
+    except Exception:
+        return ''
+    return text[:limit]
+
+
+def build_nova_prompt(user_message: str, readiness_text: str | None = None) -> str:
+    readiness_text = readiness_text or build_readiness_text()
+    company = _safe_doc_excerpt(ROOT / 'FOREXAGENTS_COMPANY_BIBLE.md', limit=4500)
+    control = _safe_doc_excerpt(ROOT / 'FOREXAGENTS_CONTROL_CENTER.md', limit=3500)
+    return f"""You are NOVA speaking inside the ForexAgents HQ Telegram group.
+
+Mission: help Ozzi understand and operate ForexAgents HQ calmly and professionally.
+
+Hard safety rules:
+- No auto-trading.
+- Do not claim you placed, modified, or closed a trade.
+- Do not ask for or reveal tokens, passwords, API keys, or credentials.
+- Do not execute system changes from this Telegram reply.
+- If Ozzi asks for a risky system change, tell him to continue in desktop NOVA.
+- Keep the answer concise, beginner-friendly, and practical.
+- If live market status matters, use the readiness text below.
+
+Current readiness:
+{readiness_text}
+
+Company Bible excerpt:
+{company}
+
+Control Center excerpt:
+{control}
+
+Ozzi says:
+{user_message}
+
+Reply as NOVA in the group. End with the one best next action.
+"""
+
+
+def build_nova_chat_reply(user_message: str) -> str:
+    message = user_message.strip()
+    if not message:
+        return '👑 NOVA: Send `/nova your question` and I will answer inside the company group.'
+    prompt = build_nova_prompt(message)
+    proc = subprocess.run(
+        ['hermes', '--safe-mode', '-z', prompt],
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    text = (proc.stdout or '').strip()
+    if proc.returncode != 0 or not text:
+        return '👑 NOVA: I could not answer safely from Telegram right now. Use `/status` for company health, or continue in desktop NOVA.'
+    return ('👑 NOVA:\n' + text)[:3900]
+
+
 def is_allowed_update(update: dict[str, Any], allowed_chat_id: int, allowed_user_id: int) -> bool:
     message = update.get('message') or {}
     chat = message.get('chat') or {}
@@ -395,6 +456,9 @@ def bridge_once(token: str, allowed_chat_id: int, allowed_user_id: int, state: d
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_team_update_reply()})
         elif cmd['command'] == 'next_action':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_next_action_reply()})
+        elif cmd['command'] == 'nova':
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': '👑 NOVA: I am reading that now...'})
+            telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_nova_chat_reply(cmd.get('args', ''))})
         elif cmd['command'] == 'scan':
             telegram_api(token, 'sendMessage', {'chat_id': chat_id, 'text': build_visible_agent_status(cmd['symbol'], cmd['timeframe'])})
             try:

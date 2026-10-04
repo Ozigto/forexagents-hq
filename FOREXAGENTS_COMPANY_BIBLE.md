@@ -325,9 +325,12 @@ now what?
 /status
 /team
 /next
+/nova your question
 ```
 
 Note: in Telegram groups, normal human text can be hidden from bots if BotFather privacy mode is enabled. Slash commands such as `/status`, `/team`, and `/next` are the reliable group path.
+
+Company Telegram decision: use one bot only, `@ozzi_nova_bot`, for both ForexAgents room operations and safe NOVA company conversation. Do not connect a second Telegram gateway to the same bot token while the ForexAgents bridge is polling.
 
 Telegram should show:
 
