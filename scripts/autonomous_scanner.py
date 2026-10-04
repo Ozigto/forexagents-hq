@@ -49,6 +49,28 @@ def in_watch_window(moment: datetime | None = None) -> bool:
     return morning or evening
 
 
+def is_market_open(moment: datetime | None = None) -> bool:
+    """Conservative forex market-hours guard in Athens time.
+
+    Forex is normally closed from Friday night until late Sunday Athens time.
+    We use a conservative Sunday 24:00 reopen guard so the scanner does not
+    burn agent/RPC calls over the weekend. Manual verification can still use
+    --force.
+    """
+    moment = moment or now_athens()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=ATHENS)
+    local = moment.astimezone(ATHENS)
+    weekday = local.weekday()  # Monday=0, Sunday=6
+    if weekday == 5:  # Saturday
+        return False
+    if weekday == 6:  # Sunday
+        return False
+    if weekday == 4 and local.hour >= 23:  # Friday late close guard
+        return False
+    return True
+
+
 def load_mt5_snapshot(symbol: str, timeframe: str) -> dict[str, Any]:
     mt5 = _load_mt5_module()
     return mt5.load_latest_snapshot(symbol, timeframe)
@@ -73,6 +95,8 @@ def is_alert_worthy(result: dict[str, Any]) -> bool:
 
 def scan_once(*, symbols: list[str] | None = None, timeframes: list[str] | None = None, now: datetime | None = None, force: bool = False) -> dict[str, Any]:
     moment = now or now_athens()
+    if not force and not is_market_open(moment):
+        return {'ok': True, 'skipped': True, 'reason': 'market_closed', 'alerts': [], 'scanned': 0}
     if not force and not in_watch_window(moment):
         return {'ok': True, 'skipped': True, 'reason': 'outside_watch_window', 'alerts': [], 'scanned': 0}
     symbols = symbols or WATCHLIST
