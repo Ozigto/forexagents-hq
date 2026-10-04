@@ -21,3 +21,5 @@ journal/tmp/
 .idea/
 
 cases/
+
+.autonomous_scanner_state.json

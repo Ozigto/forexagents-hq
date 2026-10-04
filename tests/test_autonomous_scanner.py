@@ -63,6 +63,57 @@ class AutonomousScannerTests(unittest.TestCase):
         self.assertEqual(calls[0]['evidence_snapshot']['source'], 'mt5_local_file')
         self.assertEqual(result['alerts'], [])
 
+    def test_autonomous_alert_text_is_safe_and_clear(self):
+        scanner = load_scanner()
+        alert = {
+            'symbol': 'XAU/USD',
+            'timeframe': '4H',
+            'result': {
+                'case_id': 'XAUUSD-20261005-001',
+                'gate': {'status': 'WATCH', 'evidence_grade': 'strong'},
+                'telegram_text': '📌 21 EMA BREAK + RETEST SETUP\nDecision: WATCH',
+            },
+        }
+        text = scanner.format_autonomous_alert(alert)
+        self.assertIn('ForexAgents HQ autonomous alert', text)
+        self.assertIn('Pair: XAU/USD', text)
+        self.assertIn('No auto-trading', text)
+
+    def test_send_telegram_alerts_deduplicates(self):
+        scanner = load_scanner()
+        sent = []
+
+        class FakeBridge:
+            @staticmethod
+            def load_local_env():
+                return {'FOREXAGENTS_TELEGRAM_GROUP_CHAT_ID': '-123'}
+
+            @staticmethod
+            def get_telegram_token():
+                return 'REDACTED_TEST_TOKEN'
+
+            @staticmethod
+            def telegram_api(token, method, payload):
+                sent.append((token, method, payload))
+                return {'ok': True}
+
+        alert = {
+            'symbol': 'XAU/USD',
+            'timeframe': '4H',
+            'result': {
+                'case_id': 'XAUUSD-20261005-001',
+                'gate': {'status': 'WATCH', 'evidence_grade': 'strong'},
+                'setup': {'evidence_snapshot': {'completed_candle': {'time': '2026-10-05T08:00:00+00:00'}}},
+            },
+        }
+        state = {'sent_alert_keys': []}
+        with patch.object(scanner, '_load_telegram_bridge_module', return_value=FakeBridge), \
+             patch.object(scanner, 'save_state', lambda s: None):
+            self.assertEqual(scanner.send_telegram_alerts([alert], state=state), 1)
+            self.assertEqual(scanner.send_telegram_alerts([alert], state=state), 0)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0][1], 'sendMessage')
+
 
 if __name__ == '__main__':
     unittest.main()
