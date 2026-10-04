@@ -225,38 +225,157 @@ def alert_key(alert: dict[str, Any]) -> str:
     return '|'.join([case_id, str(alert.get('symbol')), str(alert.get('timeframe')), status, str(candle_time)])
 
 
-def format_autonomous_alert(alert: dict[str, Any]) -> str:
+def extract_setup_details(alert: dict[str, Any]) -> dict[str, Any]:
+    """Extract structured setup details from RPC result for professional alert card."""
+    result = alert.get('result') or {}
+    gate = result.get('gate') or {}
+    setup = result.get('setup') or {}
+    snapshot = setup.get('evidence_snapshot') or {}
+    completed_candle = snapshot.get('completed_candle') or {}
+    calculations = snapshot.get('calculations') or []
+    symbol = alert.get('symbol', '')
+    reasons = gate.get('reasons') or []
+
+    # Determine direction from pattern/reasons
+    direction = 'UNKNOWN'
+    patterns = gate.get('patterns') or []
+    for pattern in patterns:
+        if 'pinbar' in pattern.lower():
+            for calc in calculations:
+                if calc.get('name') == 'pinbar' and calc.get('direction'):
+                    direction = calc['direction'].upper()
+                    break
+        elif 'ema' in pattern.lower() or 'break' in pattern.lower():
+            reasons_text = ' '.join(reasons).lower()
+            if 'bull' in reasons_text or 'buy' in reasons_text or 'long' in reasons_text:
+                direction = 'BUY'
+            elif 'bear' in reasons_text or 'sell' in reasons_text or 'short' in reasons_text:
+                direction = 'SELL'
+
+    # Extract key levels if available
+    entry = 'N/A'
+    stop = 'N/A'
+    target = 'N/A'
+    rr = 'N/A'
+
+    close_price = completed_candle.get('close')
+    if close_price is not None:
+        risk_dollars = 175
+        pip_value = 10.0
+        if 'JPY' in symbol:
+            pip_value = 100.0
+        elif 'XAU' in symbol:
+            pip_value = 1.0
+
+        atr = None
+        for calc in calculations:
+            if calc.get('name') == 'atr':
+                atr = calc.get('value')
+                break
+
+        if direction in ('BUY', 'SELL') and close_price:
+            sl_pct = 0.005
+            if atr and close_price:
+                sl_pct = atr / close_price * 1.5
+
+            if direction == 'BUY':
+                entry = round(close_price, 5)
+                stop = round(close_price * (1 - sl_pct), 5)
+                target = round(close_price * (1 + sl_pct * 2), 5)
+            elif direction == 'SELL':
+                entry = round(close_price, 5)
+                stop = round(close_price * (1 + sl_pct), 5)
+                target = round(close_price * (1 - sl_pct * 2), 5)
+
+            if entry and stop and target:
+                try:
+                    rr_val = abs(target - entry) / abs(entry - stop) if entry != stop else 0
+                    rr = f'{rr_val:.1f}'
+                except Exception:
+                    pass
+
+    return {
+        'direction': direction,
+        'entry': entry,
+        'stop': stop,
+        'target': target,
+        'rr': rr,
+        'patterns': patterns,
+        'reasons': reasons,
+        'evidence_grade': gate.get('evidence_grade', 'unknown'),
+        'case_id': result.get('case_id', 'none'),
+    }
+
+
+def format_professional_alert_card(alert: dict[str, Any]) -> str:
+    """Format a professional trading desk alert card."""
     result = alert.get('result') or {}
     gate = result.get('gate') or {}
     symbol = alert.get('symbol')
     timeframe = alert.get('timeframe')
     status = gate.get('status') or gate.get('decision') or result.get('status') or 'WATCH'
-    evidence = gate.get('evidence_grade', 'unknown')
-    reasons = gate.get('reasons') or []
-    transcript = result.get('transcript') or []
-    text = result.get('telegram_text') or ''
+
+    details = extract_setup_details(alert)
+    direction = details['direction']
+    patterns = details['patterns']
+    pattern_name = patterns[0] if patterns else 'unknown'
+
+    if 'pinbar' in pattern_name.lower():
+        pattern_display = 'Pin-Bar Rejection'
+    elif 'ema' in pattern_name.lower() or 'break' in pattern_name.lower():
+        pattern_display = '21 EMA Break + Retest'
+    else:
+        pattern_display = pattern_name.replace('_', ' ').title()
+
     lines = [
-        '🚨 ForexAgents HQ autonomous alert',
+        '📌 FOREXAGENTS HQ — TRADE SETUP ALERT',
+        '',
         f'Pair: {symbol}',
         f'Timeframe: {timeframe}',
+        f'Direction: {direction}',
         f'Status: {status}',
-        f'Evidence: {evidence}',
-        f"Case: {result.get('case_id', 'none')}",
+        f'Pattern: {pattern_display}',
+        f'Evidence: {details["evidence_grade"].upper()}',
+        f'Case: {details["case_id"]}',
         '',
+        '━━━ SETUP DETAILS ━━━',
     ]
-    if text:
-        lines.append(text[:2600])
-    elif transcript:
-        lines.append('Desk summary: evidence gate passed; agents have a case to review.')
-    elif reasons:
-        lines.extend([f'- {reason}' for reason in reasons[:6]])
+
+    if details['entry'] != 'N/A':
+        lines.extend([
+            f'Entry: {details["entry"]}',
+            f'Stop Loss: {details["stop"]}',
+            f'Target: {details["target"]}',
+            f'Risk: ${150 if details["evidence_grade"] != "strong" else 200}',
+            f'R:R: 1:{details["rr"]}',
+            '',
+        ])
     else:
-        lines.append('Evidence passed the alert gate. Review before taking any trade.')
+        lines.extend([
+            'Entry: — (review case for precise levels)',
+            'Stop Loss: —',
+            'Target: —',
+            'Risk: $150–$200 (1 lot)',
+            '',
+        ])
+
+    if details['reasons']:
+        lines.append('━━━ REASONS ━━━')
+        for reason in details['reasons'][:5]:
+            lines.append(f'• {reason}')
+        lines.append('')
+
     lines.extend([
-        '',
-        '👑 NOVA: This is a signal/research alert only. No auto-trading. Check entry, stop, target, spread, and news before acting.',
+        '👑 NOVA: Signal/research only. No auto-trading.',
+        'Verify entry, stop, target, spread, and news before acting.',
     ])
+
     return '\n'.join(lines)[:3900]
+
+
+def format_autonomous_alert(alert: dict[str, Any]) -> str:
+    """Format alert using professional trading desk card."""
+    return format_professional_alert_card(alert)
 
 
 def _telegram_chat_and_token() -> tuple[Any, int, str]:

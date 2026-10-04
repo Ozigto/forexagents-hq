@@ -77,9 +77,10 @@ class AutonomousScannerTests(unittest.TestCase):
             },
         }
         text = scanner.format_autonomous_alert(alert)
-        self.assertIn('ForexAgents HQ autonomous alert', text)
+        self.assertIn('FOREXAGENTS HQ — TRADE SETUP ALERT', text)
         self.assertIn('Pair: XAU/USD', text)
-        self.assertIn('No auto-trading', text)
+        self.assertIn('Signal/research only', text)
+        self.assertIn('Verify entry, stop', text)
 
     def test_send_telegram_alerts_deduplicates(self):
         scanner = load_scanner()
