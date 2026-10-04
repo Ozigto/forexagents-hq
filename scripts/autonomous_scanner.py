@@ -11,6 +11,7 @@ import argparse
 import csv
 import importlib.util
 import json
+import subprocess
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -433,6 +434,92 @@ def format_status_report(health: dict[str, Any], *, now: datetime | None = None,
     return '\n'.join(lines)[:3900]
 
 
+def scanner_service_running() -> bool:
+    try:
+        proc = subprocess.run(
+            ['launchctl', 'list'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        return 'com.ozzi.forexagents.scanner' in (proc.stdout or '')
+    except Exception:
+        return False
+
+
+def build_readiness_report(
+    *,
+    health: dict[str, Any] | None = None,
+    rpc_ok: bool | None = None,
+    scanner_service_running: bool | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    moment = now or now_athens()
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=ATHENS)
+    local = moment.astimezone(ATHENS)
+    health = health if health is not None else check_mt5_health(now=local)
+    rpc_ok = rpc_health() if rpc_ok is None else rpc_ok
+    svc_ok = globals()['scanner_service_running']() if scanner_service_running is None else scanner_service_running
+    checks = {
+        'rpc_brain': 'OK' if rpc_ok else 'OFFLINE',
+        'mt5_health': 'OK' if health.get('ok') else 'WARNING',
+        'mt5_groups': f"{health.get('closed_groups', 0)}/16",
+        'scanner_service': 'OK' if svc_ok else 'OFFLINE',
+        'market': 'OPEN' if is_market_open(local) else 'CLOSED',
+        'watch_window': 'INSIDE' if in_watch_window(local) and is_market_open(local) else 'WAITING',
+        'telegram_alerts': 'ON',
+        'auto_trading': 'OFF',
+    }
+    next_actions: list[str] = []
+    if not health.get('ok'):
+        next_actions.append(f"Fix MT5 health: {health.get('reason', 'unknown')}")
+    if not rpc_ok:
+        next_actions.append('Restart ForexAgents RPC service.')
+    if not svc_ok:
+        next_actions.append('Restart ForexAgents scanner launchd service.')
+    if health.get('closed_groups', 0) != 16:
+        next_actions.append('Confirm all 8 pairs and 1H/4H groups are exported from MT5.')
+    if not next_actions:
+        next_actions.append('No action now. Keep Mac awake, external drive mounted, and MT5 running.')
+    ready = bool(health.get('ok') and rpc_ok and svc_ok and health.get('closed_groups') == 16)
+    return {
+        'ready_for_live_test': ready,
+        'timestamp': local.isoformat(timespec='minutes'),
+        'checks': checks,
+        'health': health,
+        'next_watch_window': next_watch_window(local),
+        'next_actions': next_actions,
+    }
+
+
+def format_readiness_report(report: dict[str, Any]) -> str:
+    checks = report.get('checks') or {}
+    actions = report.get('next_actions') or []
+    lines = [
+        '🧪 ForexAgents HQ readiness',
+        '',
+        f"Ready for live test: {'YES' if report.get('ready_for_live_test') else 'NO'}",
+        f"RPC brain: {checks.get('rpc_brain', 'unknown')}",
+        f"MT5 health: {checks.get('mt5_health', 'unknown')}",
+        f"MT5 groups: {checks.get('mt5_groups', 'unknown')}",
+        f"Scanner service: {checks.get('scanner_service', 'unknown')}",
+        f"Market: {checks.get('market', 'unknown')}",
+        f"Watch window: {checks.get('watch_window', 'unknown')}",
+        f"Telegram alerts: {checks.get('telegram_alerts', 'unknown')}",
+        f"Auto-trading: {checks.get('auto_trading', 'OFF')}",
+        f"Next watch window: {report.get('next_watch_window', 'unknown')}",
+        '',
+        'Next actions:',
+    ]
+    lines.extend([f'- {action}' for action in actions])
+    lines.append('')
+    lines.append(f"Athens time: {report.get('timestamp', 'unknown')}")
+    return '\n'.join(lines)[:3900]
+
+
 def send_daily_status_report_if_needed(health: dict[str, Any], *, now: datetime | None = None, state: dict[str, Any] | None = None) -> int:
     moment = now or now_athens()
     if moment.tzinfo is None:
@@ -559,8 +646,13 @@ def main() -> int:
     parser.add_argument('--once', action='store_true', help='run one scan and exit')
     parser.add_argument('--force', action='store_true', help='scan even outside watch windows')
     parser.add_argument('--telegram', action='store_true', help='send alert-worthy cases to the ForexAgents Telegram group')
+    parser.add_argument('--readiness', action='store_true', help='print live-readiness report and exit')
     parser.add_argument('--interval-seconds', type=int, default=900)
     args = parser.parse_args()
+    if args.readiness:
+        report = build_readiness_report()
+        print(format_readiness_report(report), flush=True)
+        return 0 if report.get('ready_for_live_test') else 2
     while True:
         result = scan_once(force=args.force)
         if args.telegram and result.get('health'):

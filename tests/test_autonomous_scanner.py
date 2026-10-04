@@ -239,6 +239,47 @@ class AutonomousScannerTests(unittest.TestCase):
         self.assertEqual(len(sent), 2)
         self.assertIn('ForexAgents HQ is awake', sent[0][2]['text'])
 
+    def test_readiness_report_marks_ready_when_core_checks_pass(self):
+        scanner = load_scanner()
+        health = {'ok': True, 'closed_groups': 16, 'closed_rows': 1920}
+        report = scanner.build_readiness_report(
+            health=health,
+            rpc_ok=True,
+            scanner_service_running=True,
+            now=datetime.fromisoformat('2026-10-04T06:00:00+03:00'),
+        )
+        self.assertTrue(report['ready_for_live_test'])
+        self.assertEqual(report['checks']['mt5_health'], 'OK')
+        self.assertEqual(report['checks']['rpc_brain'], 'OK')
+        self.assertEqual(report['checks']['scanner_service'], 'OK')
+        self.assertEqual(report['checks']['auto_trading'], 'OFF')
+
+    def test_readiness_report_blocks_when_mt5_unhealthy(self):
+        scanner = load_scanner()
+        health = {'ok': False, 'reason': 'mt5_candles_stale', 'closed_groups': 16}
+        report = scanner.build_readiness_report(
+            health=health,
+            rpc_ok=True,
+            scanner_service_running=True,
+            now=datetime.fromisoformat('2026-10-05T06:00:00+03:00'),
+        )
+        self.assertFalse(report['ready_for_live_test'])
+        self.assertEqual(report['checks']['mt5_health'], 'WARNING')
+        self.assertIn('Fix MT5 health', report['next_actions'][0])
+
+    def test_readiness_text_is_human_readable(self):
+        scanner = load_scanner()
+        report = scanner.build_readiness_report(
+            health={'ok': True, 'closed_groups': 16, 'closed_rows': 1920},
+            rpc_ok=True,
+            scanner_service_running=True,
+            now=datetime.fromisoformat('2026-10-04T06:00:00+03:00'),
+        )
+        text = scanner.format_readiness_report(report)
+        self.assertIn('ForexAgents HQ readiness', text)
+        self.assertIn('Ready for live test: YES', text)
+        self.assertIn('Auto-trading: OFF', text)
+
 
 if __name__ == '__main__':
     unittest.main()
