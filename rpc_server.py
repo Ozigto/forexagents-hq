@@ -352,11 +352,113 @@ def answer_cross_questions(setup: dict[str, Any], transcript: list[dict[str, str
     return answers
 
 
+def _calc_named(snapshot: dict[str, Any], name: str) -> dict[str, Any] | None:
+    for calc in snapshot.get('calculations') or []:
+        if calc.get('name') == name:
+            return calc
+    return None
+
+
+def _candle_range(candle: dict[str, Any]) -> float:
+    return float(candle.get('high', 0)) - float(candle.get('low', 0))
+
+
+def _is_recent_ema_chop(candles: list[dict[str, Any]], ema21: float | None) -> bool:
+    """Reject the exact problem Ozzi caught: sideways candles crossing a flat EMA."""
+    if ema21 is None or len(candles) < 8:
+        return False
+    recent = candles[-8:]
+    closes = [float(c['close']) for c in recent]
+    ranges = [_candle_range(c) for c in recent if _candle_range(c) > 0]
+    if not ranges:
+        return False
+    above = sum(1 for close in closes if close > ema21)
+    below = sum(1 for close in closes if close < ema21)
+    avg_range = sum(ranges) / len(ranges)
+    progress = abs(closes[-1] - closes[0])
+    total_range = max(float(c['high']) for c in recent) - min(float(c['low']) for c in recent)
+    crosses_ema = above >= 2 and below >= 2
+    little_progress = progress < avg_range * 1.25
+    overlapping_range = total_range < avg_range * 4.0
+    return crosses_ema and little_progress and overlapping_range
+
+
+def _detect_4h_21ema_break_retest(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Detect Ozzi's real pattern: structure break, retest, EMA context, continuation.
+
+    This is not an approval engine. It only decides whether the evidence is strong
+    enough to wake the agents. Pin-bar shape alone is deliberately ignored.
+    """
+    candles = snapshot.get('candles') or []
+    if len(candles) < 28:
+        return {'ok': False, 'reason': 'Not enough candles to prove break/retest structure.'}
+    ema_calc = _calc_named(snapshot, 'ema21') or {}
+    ema21 = ema_calc.get('value')
+    ema21 = float(ema21) if ema21 is not None else None
+    if _is_recent_ema_chop(candles, ema21):
+        return {'ok': False, 'reason': 'Recent candles are consolidating/chopping around the 21 EMA.'}
+
+    recent = candles[-8:]
+    prior = candles[-28:-8]
+    last = candles[-1]
+    prior_lows = [float(c['low']) for c in prior]
+    prior_highs = [float(c['high']) for c in prior]
+    avg_range = sum(_candle_range(c) for c in candles[-20:]) / 20
+    tolerance = max(avg_range * 0.45, 0.00001)
+
+    support = min(prior_lows)
+    resistance = max(prior_highs)
+    recent_lows = [float(c['low']) for c in recent]
+    recent_highs = [float(c['high']) for c in recent]
+    recent_closes = [float(c['close']) for c in recent]
+
+    # SELL: break below support, pull back into the broken level/EMA from underneath,
+    # reject, then start continuation lower.
+    broke_down = any(float(c['close']) < support - tolerance for c in recent[:-2])
+    retested_from_under = any(
+        abs(float(c['high']) - support) <= tolerance * 1.8 or (ema21 is not None and abs(float(c['high']) - ema21) <= tolerance * 1.8)
+        for c in recent[-5:-1]
+    )
+    ema_bearish = ema21 is not None and float(last['close']) < ema21 and sum(1 for c in recent[-4:] if float(c['close']) < ema21) >= 3
+    continuation_lower = float(last['close']) < min(recent_closes[-4:-1]) or float(last['low']) <= min(recent_lows[-5:-1])
+    if broke_down and retested_from_under and ema_bearish and continuation_lower:
+        return {
+            'ok': True,
+            'direction': 'bearish',
+            'pattern': '4h_21ema_break_retest',
+            'entry_zone': round(max(support, ema21 or support), 5),
+            'stop_loss': round(max(recent_highs[-5:]), 5),
+            'target_hint': round(min(recent_lows), 5),
+            'reason': '4H structure broke lower, retested from underneath near the 21 EMA/level, and started bearish continuation.',
+        }
+
+    # BUY: mirror logic.
+    broke_up = any(float(c['close']) > resistance + tolerance for c in recent[:-2])
+    retested_from_above = any(
+        abs(float(c['low']) - resistance) <= tolerance * 1.8 or (ema21 is not None and abs(float(c['low']) - ema21) <= tolerance * 1.8)
+        for c in recent[-5:-1]
+    )
+    ema_bullish = ema21 is not None and float(last['close']) > ema21 and sum(1 for c in recent[-4:] if float(c['close']) > ema21) >= 3
+    continuation_higher = float(last['close']) > max(recent_closes[-4:-1]) or float(last['high']) >= max(recent_highs[-5:-1])
+    if broke_up and retested_from_above and ema_bullish and continuation_higher:
+        return {
+            'ok': True,
+            'direction': 'bullish',
+            'pattern': '4h_21ema_break_retest',
+            'entry_zone': round(min(resistance, ema21 or resistance), 5),
+            'stop_loss': round(min(recent_lows[-5:]), 5),
+            'target_hint': round(max(recent_highs), 5),
+            'reason': '4H structure broke higher, retested from above near the 21 EMA/level, and started bullish continuation.',
+        }
+
+    return {'ok': False, 'reason': 'No clean break + retest + 21 EMA continuation structure.'}
+
+
 def evidence_gate(setup: dict[str, Any]) -> dict[str, Any]:
     """Deterministic pre-check before spending LLM calls.
 
     This is intentionally conservative. It does not approve trades; it only decides
-    whether one of Ozzi's two allowed patterns is plausible enough for agent debate.
+    whether Ozzi's real setup is plausible enough for agent debate.
     """
     notes = ' '.join(str(setup.get(key, '')) for key in ('chart_notes', 'ozzi_notes', 'notes', 'text')).lower()
     timeframe = str(setup.get('timeframe', '')).upper().replace('H1', '1H').replace('H4', '4H')
@@ -376,18 +478,36 @@ def evidence_gate(setup: dict[str, Any]) -> dict[str, Any]:
                 'unknowns': quality.get('warnings', []),
                 'vetoes': quality.get('vetoes', []),
             }
-        for calc in snapshot.get('calculations') or []:
-            if calc.get('name') == 'pinbar' and calc.get('is_pinbar') is True and timeframe in {'1H', '4H'}:
-                direction = calc.get('direction', 'unknown')
+        if timeframe == '4H':
+            structure = _detect_4h_21ema_break_retest(snapshot)
+            if structure.get('ok'):
                 return {
                     'decision': 'DEBATE',
                     'status': 'CANDIDATE_FOR_DEBATE',
                     'symbol': symbol,
                     'timeframe': timeframe or 'UNKNOWN',
-                    'patterns': ['pinbar_rejection'],
+                    'patterns': [structure['pattern']],
+                    'direction': structure.get('direction'),
                     'evidence_grade': 'strong',
-                    'reasons': [f'{timeframe} live snapshot contains a deterministic {direction} pin-bar candidate.'],
+                    'levels': {
+                        'entry_zone': structure.get('entry_zone'),
+                        'stop_loss': structure.get('stop_loss'),
+                        'target_hint': structure.get('target_hint'),
+                    },
+                    'reasons': [structure['reason']],
                     'unknowns': [],
+                }
+            pinbar = _calc_named(snapshot, 'pinbar') or {}
+            if pinbar.get('is_pinbar') is True:
+                return {
+                    'decision': 'WAIT',
+                    'status': 'WAIT',
+                    'symbol': symbol,
+                    'timeframe': timeframe or 'UNKNOWN',
+                    'patterns': [],
+                    'evidence_grade': 'insufficient',
+                    'reasons': [structure.get('reason', 'Pin-bar shape is not enough without clean structure.')],
+                    'unknowns': ['Pin-bar-only alert blocked. Need clean break/retest + 21 EMA context, not consolidation/chop.'],
                 }
     patterns: list[str] = []
     reasons: list[str] = []

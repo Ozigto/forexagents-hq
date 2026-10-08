@@ -83,6 +83,31 @@ Allowed strategies only:
 1. **4H 21 EMA Break + Retest**
 2. **1H / 4H Pin Bar Rejection**
 
+Official visual reference for Ozzi's main sell pattern:
+
+```text
+assets/pattern_examples/ozzi_4h_21ema_break_retest_sell_reference.png
+```
+
+The company must find entries from the **full path**, not from a single candle:
+
+- clean structure break;
+- retest of the broken level and/or 21 EMA area;
+- 21 EMA direction/context agrees with the trade;
+- rejection/confirmation after the retest;
+- clear entry zone, stop, and target space;
+- not consolidation/chop.
+
+Hard block:
+
+```text
+Pin-bar shape alone = WAIT.
+Pin bar inside consolidation/chop = WAIT.
+Candles crossing sideways through a flat 21 EMA = WAIT.
+```
+
+This rule exists because the first live GBP/USD alert on 2026-10-08 was a bearish pin-bar shape inside 4H consolidation. Ozzi correctly rejected it; the system must not repeat that mistake.
+
 Timing:
 
 - Timezone: Europe/Athens.

@@ -40,9 +40,27 @@ patterns:
       - stop above wick high
     quality_filter:
       - must be at meaningful level
+      - pin-bar candle shape alone is never enough for an alert
+      - must agree with structure and 21 EMA context
+      - prefer pin bars that appear as part of the clean break/retest continuation path
       - reject middle-of-nowhere candles
       - reject chop
+      - reject consolidation around the 21 EMA
       - reject near dangerous news
+alert_gate:
+  official_visual_reference: assets/pattern_examples/ozzi_4h_21ema_break_retest_sell_reference.png
+  require_for_trade_setup_alert:
+    - clear structure break
+    - retest of broken level and/or 21 EMA area
+    - 21 EMA direction/context agrees with trade direction
+    - rejection/confirmation after retest
+    - not consolidation/chop
+    - entry zone, stop, and target can be inferred from structure
+  block:
+    - pin-bar-only candidates
+    - candles crossing sideways through a flat 21 EMA
+    - overlapping range candles with no progress
+    - alerts without entry/stop/target context
 sessions:
   timezone: Europe/Athens
   watch_windows:

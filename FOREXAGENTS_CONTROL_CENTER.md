@@ -111,6 +111,33 @@ Allowed setup patterns only:
 
 If neither setup is plausible, the correct result is `WAIT`.
 
+Official pattern reference:
+
+```text
+assets/pattern_examples/ozzi_4h_21ema_break_retest_sell_reference.png
+```
+
+Current alert gate rule:
+
+```text
+No pin-bar-only alerts.
+No consolidation/chop alerts.
+No sideways candles around a flat 21 EMA.
+Alert only when structure break + retest + 21 EMA context can produce an entry idea.
+```
+
+For a sell setup, the scanner should prefer the path Ozzi showed:
+
+```text
+break below support/level
+→ pullback/retest into broken level or 21 EMA from underneath
+→ rejection/confirmation
+→ continuation lower
+→ entry zone, stop above retest high, target below
+```
+
+For a buy setup, mirror the same logic above resistance/support from above.
+
 ## 5. Timing rules
 
 Timezone: Europe/Athens.

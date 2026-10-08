@@ -42,7 +42,7 @@ class EvidenceGateTests(unittest.TestCase):
         self.assertIn('4h_21ema_break_retest', gate['patterns'])
         self.assertEqual(gate['evidence_grade'], 'mixed')
 
-    def test_pinbar_candidate_passes_gate(self):
+    def test_text_pinbar_candidate_requires_structure_context(self):
         gate = rpc_server.evidence_gate({
             'symbol': 'GBP/USD',
             'timeframe': '1H',
@@ -51,25 +51,64 @@ class EvidenceGateTests(unittest.TestCase):
         self.assertEqual(gate['decision'], 'DEBATE')
         self.assertIn('pinbar_rejection', gate['patterns'])
 
-    def test_snapshot_pinbar_candidate_passes_gate_without_text_claims(self):
+    def test_snapshot_pinbar_alone_waits_without_clean_structure(self):
         gate = rpc_server.evidence_gate({
             'symbol': 'XAU/USD',
-            'timeframe': '1H',
+            'timeframe': '4H',
             'now': '2026-10-03T02:00:00+00:00',
             'chart_notes': '',
             'evidence_snapshot': {
                 'symbol': 'XAU/USD',
-                'timeframe': '1H',
+                'timeframe': '4H',
                 'source': 'biquote',
                 'data_timestamp': '2026-10-03T02:00:00+00:00',
-                'completed_candle': {'time': '2026-10-03T01:00:00+00:00'},
-                'candles': [{'time': '2026-10-03T01:00:00+00:00'}],
-                'calculations': [{'name': 'pinbar', 'is_pinbar': True, 'direction': 'bullish'}],
+                'completed_candle': {'time': '2026-10-03T00:00:00+00:00'},
+                'candles': [
+                    {'time': f'2026-10-{i:02d}T00:00:00+00:00', 'open': 1.1000, 'high': 1.1020, 'low': 1.0980, 'close': 1.1005}
+                    for i in range(1, 29)
+                ],
+                'calculations': [
+                    {'name': 'ema21', 'value': 1.1000},
+                    {'name': 'pinbar', 'is_pinbar': True, 'direction': 'bearish'},
+                ],
+            },
+        })
+        self.assertEqual(gate['decision'], 'WAIT')
+        self.assertEqual(gate['patterns'], [])
+        self.assertIn('Pin-bar-only alert blocked', gate['unknowns'][0])
+
+    def test_snapshot_clean_4h_break_retest_passes_with_levels(self):
+        candles = []
+        for i in range(20):
+            candles.append({'time': f'2026-09-{i+1:02d}T00:00:00+00:00', 'open': 1.1010, 'high': 1.1040, 'low': 1.0950, 'close': 1.1000})
+        candles.extend([
+            {'time': '2026-09-21T00:00:00+00:00', 'open': 1.1000, 'high': 1.1010, 'low': 1.0940, 'close': 1.0920},
+            {'time': '2026-09-22T00:00:00+00:00', 'open': 1.0920, 'high': 1.0940, 'low': 1.0890, 'close': 1.0910},
+            {'time': '2026-09-23T00:00:00+00:00', 'open': 1.0910, 'high': 1.0952, 'low': 1.0900, 'close': 1.0948},
+            {'time': '2026-09-24T00:00:00+00:00', 'open': 1.0948, 'high': 1.0960, 'low': 1.0920, 'close': 1.0930},
+            {'time': '2026-09-25T00:00:00+00:00', 'open': 1.0930, 'high': 1.0940, 'low': 1.0910, 'close': 1.0920},
+            {'time': '2026-09-26T00:00:00+00:00', 'open': 1.0920, 'high': 1.0930, 'low': 1.0900, 'close': 1.0905},
+            {'time': '2026-09-27T00:00:00+00:00', 'open': 1.0905, 'high': 1.0920, 'low': 1.0890, 'close': 1.0895},
+            {'time': '2026-09-28T00:00:00+00:00', 'open': 1.0895, 'high': 1.0910, 'low': 1.0870, 'close': 1.0880},
+        ])
+        gate = rpc_server.evidence_gate({
+            'symbol': 'GBP/USD',
+            'timeframe': '4H',
+            'now': '2026-09-28T04:00:00+00:00',
+            'evidence_snapshot': {
+                'symbol': 'GBP/USD',
+                'timeframe': '4H',
+                'source': 'test',
+                'data_timestamp': '2026-09-28T04:00:00+00:00',
+                'completed_candle': {'time': '2026-09-28T00:00:00+00:00'},
+                'candles': candles,
+                'calculations': [{'name': 'ema21', 'value': 1.0960}],
             },
         })
         self.assertEqual(gate['decision'], 'DEBATE')
-        self.assertIn('pinbar_rejection', gate['patterns'])
-        self.assertEqual(gate['evidence_grade'], 'strong')
+        self.assertIn('4h_21ema_break_retest', gate['patterns'])
+        self.assertEqual(gate['direction'], 'bearish')
+        self.assertIn('entry_zone', gate['levels'])
 
     def test_debate_setup_fetches_live_snapshot_when_missing(self):
         fake_snapshot = {
@@ -92,7 +131,7 @@ class EvidenceGateTests(unittest.TestCase):
                 'case_root': tmp,
                 'max_agents': 0,
             })
-        self.assertEqual(result['gate']['decision'], 'DEBATE')
+        self.assertEqual(result['gate']['decision'], 'WAIT')
         self.assertEqual(result['setup']['evidence_snapshot']['source'], 'biquote')
 
     def test_live_snapshot_scan_fails_closed_when_feed_is_stale(self):
