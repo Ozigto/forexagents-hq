@@ -34,6 +34,11 @@ STATE_FILE = ROOT / '.telegram_bridge_state.json'
 LOCAL_ENV = ROOT / '.env.telegram.local'
 RPC_URL = 'http://127.0.0.1:18765/debate/setup'
 KOKORO_TTS = Path('/Volumes/AI-Brain/hermes/tools/kokoro-tts.sh')
+NODE_CANDIDATES = [
+    Path('/Users/ozitzaferi/.hermes/tools/node-26.7.0-darwin-arm64/bin/node'),
+    Path('/opt/homebrew/bin/node'),
+    Path('/usr/local/bin/node'),
+]
 
 NATURAL_STATUS_PHRASES = {
     'anything new',
@@ -113,8 +118,9 @@ db.get("select data from credentials_entity where type='telegramApi' order by up
   db.close();
 });
 '''
+    node_bin = next((str(p) for p in NODE_CANDIDATES if p.exists()), 'node')
     proc = subprocess.run(
-        ['node', '-e', node_code],
+        [node_bin, '-e', node_code],
         cwd=str(N8N_ROOT / 'runtime'),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
